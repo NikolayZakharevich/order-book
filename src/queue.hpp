@@ -3,122 +3,122 @@
 #include <algorithm>
 #include <vector>
 
-template<typename Key, typename Element, class Compare>
+template<typename Key, typename Value, class Compare>
 class priority_queue {
 
 public:
 
-    typedef typename std::vector<Element>::iterator iterator;
-    typedef typename std::vector<Element>::const_iterator const_iterator;
+    typedef typename std::vector<Value>::iterator iterator;
+    typedef typename std::vector<Value>::const_iterator const_iterator;
 
     priority_queue() {}
-    priority_queue(std::function<Key(Element)> const &element_to_key) : element_to_key(element_to_key) {
+    priority_queue(std::function<Key(Value)> const &value_to_key) : value_to_key(value_to_key) {
         cmp = Compare();
-        elements = std::vector<Element>();
+        values = std::vector<Value>();
     }
 
-    Element top() const;
+    Value top() const;
 
-    Element &top();
+    Value &top();
 
     void remove(iterator it);
 
-    iterator find(Element element);
+    iterator find(Value value);
 
     bool empty();
 
     void pop();
 
-    void push(const Element &element);
+    void push(const Value &value);
 
-    const_iterator end() const { return elements.end(); }
+    const_iterator end() const { return values.end(); }
 
 private:
 
-    std::vector<Element> elements;
-    std::function<Key(Element)> const element_to_key;
+    std::vector<Value> values;
+    std::function<Key(Value)> const value_to_key;
     Compare cmp;
 
     void makeHeap();
 
-    void siftUp(size_t i);
+    void siftUp(size_t index_from);
 
-    void siftDown(size_t i);
+    void siftDown(size_t index_from);
 };
 
 
-template<typename Key, typename Element, class Compare>
-Element &priority_queue<Key, Element, Compare>::top() {
-    return *elements.begin();
+template<typename Key, typename Value, class Compare>
+Value &priority_queue<Key, Value, Compare>::top() {
+    return *values.begin();
 }
 
-template<typename Key, typename Element, class Compare>
-Element priority_queue<Key, Element, Compare>::top() const {
+template<typename Key, typename Value, class Compare>
+Value priority_queue<Key, Value, Compare>::top() const {
     return top();
 }
 
 
-template<typename Key, typename Element, class Compare>
-void priority_queue<Key, Element, Compare>::push(Element const &element) {
-    elements.push_back(element);
-    if (elements.size() > 1) {
-        siftUp(elements.size() - 1);
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::push(Value const &value) {
+    values.push_back(value);
+    if (values.size() > 1) {
+        siftUp(values.size() - 1);
     }
 }
 
-template<typename Key, typename Element, class Compare>
-typename priority_queue<Key, Element, Compare>::iterator priority_queue<Key, Element, Compare>::find(Element element) {
-    return std::find(elements.begin(), elements.end(), element);
+template<typename Key, typename Value, class Compare>
+typename priority_queue<Key, Value, Compare>::iterator priority_queue<Key, Value, Compare>::find(Value value) {
+    return std::find(values.begin(), values.end(), value);
 }
 
-template<typename Key, typename Element, class Compare>
-void priority_queue<Key, Element, Compare>::remove(priority_queue::iterator it) {
-    elements.erase(it);
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::remove(priority_queue::iterator it) {
+    values.erase(it);
     makeHeap();
 }
 
-template<typename Key, typename Element, class Compare>
-bool priority_queue<Key, Element, Compare>::empty() {
-    return elements.empty();
+template<typename Key, typename Value, class Compare>
+bool priority_queue<Key, Value, Compare>::empty() {
+    return values.empty();
 }
 
-template<typename Key, typename Element, class Compare>
-void priority_queue<Key, Element, Compare>::makeHeap() {
-    size_t max = elements.size() / 2;
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::makeHeap() {
+    size_t max = values.size() / 2;
     for (size_t i = 0; i <= max; i++) {
         siftDown(max - i);
     }
 }
 
-template<typename Key, typename Element, class Compare>
-void priority_queue<Key, Element, Compare>::siftUp(size_t i) {
-    while (i > 0 && cmp(elements[i], elements[(i - 1) / 2])) {
-        std::swap(elements[i], elements[(i - 1) / 2]);
-        i = (i - 1) / 2;
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::siftUp(size_t index_from) {
+    while (index_from > 0 && cmp(values[index_from], values[(index_from - 1) / 2])) {
+        std::swap(values[index_from], values[(index_from - 1) / 2]);
+        index_from = (index_from - 1) / 2;
     }
 }
 
 
-template<typename Key, typename Element, class Compare>
-void priority_queue<Key, Element, Compare>::pop() {
-    elements.front() = elements.back();
-    elements.pop_back();
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::pop() {
+    values.front() = values.back();
+    values.pop_back();
     siftDown(0);
 }
 
-template<typename Key, typename Element, class Compare>
-void priority_queue<Key, Element, Compare>::siftDown(size_t i) {
-    while (2 * i + 1 < elements.size()) {
-        size_t left = 2 * i + 1;
-        size_t right = 2 * i + 2;
-        size_t j = left;
-        if (right < elements.size() && cmp(elements[right], elements[left])) {
-            j = right;
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::siftDown(size_t index_from) {
+    while (2 * index_from + 1 < values.size()) {
+        size_t index_left = 2 * index_from + 1;
+        size_t index_right = 2 * index_from + 2;
+        size_t index_to = index_left;
+        if (index_right < values.size() && cmp(values[index_right], values[index_left])) {
+            index_to = index_right;
         }
-        if (!cmp(elements[j], elements[i])) {
+        if (!cmp(values[index_to], values[index_from])) {
             break;
         }
-        std::swap(elements[i], elements[j]);
-        i = j;
+        std::swap(values[index_from], values[index_to]);
+        index_from = index_to;
     }
 }
