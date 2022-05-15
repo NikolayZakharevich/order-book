@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <sstream>
-
+#include <optional>
 
 std::vector<std::string> splitByChar(const std::string &string, char c);
 
@@ -12,6 +12,26 @@ std::shared_ptr<Insert> parseInsert(const std::vector<std::string> &insert_parts
 std::shared_ptr<Amend> parseAmend(const std::vector<std::string> &amend_parts);
 
 std::shared_ptr<Pull> parsePull(const std::vector<std::string> &pull_parts);
+
+std::string toStringItem(std::optional<OrderBook::Item> bid_opt, std::optional<OrderBook::Item> ask_opt) {
+    std::stringstream stream;
+    if (bid_opt.has_value()) {
+        stream << (double) bid_opt.value().price / 10000;
+        stream << ',';
+        stream << bid_opt.value().volume;
+        stream << ',';
+    } else {
+        stream << ",,";
+    }
+    if (ask_opt.has_value()) {
+        stream << (double) ask_opt.value().price / 10000;
+        stream << ',';
+        stream << ask_opt.value().volume;
+    } else {
+        stream << ",";
+    }
+    return stream.str();
+}
 
 int parsePrice(const std::string &price_str);
 
@@ -52,24 +72,22 @@ std::vector<std::string> toString(std::vector<Trade> trades, std::vector<OrderBo
 
     for (OrderBook const &order_book : order_books) {
         result.push_back("===" + order_book.symbol + "===");
-        for (OrderBook::OrderBookItem const &info_item : order_book.rows) {
-            std::stringstream stream;
-            if (info_item.bid_price != OrderBook::OrderBookItem::NONE) {
-                stream << (double) info_item.bid_price / 10000;
-            }
-            stream << ',';
-            if (info_item.bid_volume != OrderBook::OrderBookItem::NONE) {
-                stream << info_item.bid_volume;
-            }
-            stream << ',';
-            if (info_item.ask_price != OrderBook::OrderBookItem::NONE) {
-                stream << (double) info_item.ask_price / 10000;
-            }
-            stream << ',';
-            if (info_item.ask_volume != OrderBook::OrderBookItem::NONE) {
-                stream << info_item.ask_volume;
-            }
-            result.push_back(stream.str());
+
+        auto it_items_bids = order_book.bids.begin();
+        auto it_items_asks = order_book.asks.begin();
+        while (it_items_bids != order_book.bids.end() && it_items_asks != order_book.asks.end()) {
+            auto bid = *it_items_bids++;
+            auto ask = *it_items_asks++;
+            result.push_back(toStringItem(
+                    std::make_optional<OrderBook::Item>(bid), std::make_optional<OrderBook::Item>(ask)));
+        }
+        while (it_items_bids != order_book.bids.end()) {
+            auto bid = *it_items_bids++;
+            result.push_back(toStringItem(std::make_optional<OrderBook::Item>(bid), std::nullopt));
+        }
+        while (it_items_asks != order_book.asks.end()) {
+            auto ask = *it_items_asks++;
+            result.push_back(toStringItem(std::nullopt, std::make_optional<OrderBook::Item>(ask)));
         }
     }
 

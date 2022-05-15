@@ -77,16 +77,10 @@ void CLOBEngine::visitPull(Pull const &pull) {
 
 }
 
-struct Item {
-    int price;
-    int volume;
-
-    Item(int price, int volume) : price(price), volume(volume) {}
-};
 
 template<typename Compare>
-std::vector<Item> extractItems(Queue<Compare> &queue) {
-    std::vector<Item> items = std::vector<Item>();
+std::vector<OrderBook::Item> extractItems(Queue<Compare> &queue) {
+    std::vector<OrderBook::Item> items = std::vector<OrderBook::Item>();
     if (queue.empty()) {
         return items;
     }
@@ -131,36 +125,19 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
         auto it_buys = buys_copy.find(symbol);
         auto it_sells = sells_copy.find(symbol);
 
-        std::vector<Item> items_bids, items_asks;
+        std::vector<OrderBook::Item> items_bids, items_asks;
         if (it_buys != buys_copy.end()) {
             items_bids = extractItems(it_buys->second);
         } else {
-            items_bids = std::vector<Item>();
+            items_bids = std::vector<OrderBook::Item>();
         }
         if (it_sells != sells_copy.end()) {
             items_asks = extractItems(it_sells->second);
         } else {
-            items_asks = std::vector<Item>();
+            items_asks = std::vector<OrderBook::Item>();
         }
 
-        std::vector<OrderBook::OrderBookItem> items = std::vector<OrderBook::OrderBookItem>();
-        auto it_items_bids = items_bids.begin();
-        auto it_items_asks = items_asks.begin();
-        while (it_items_bids != items_bids.end() && it_items_asks != items_asks.end()) {
-            auto bid = *it_items_bids++;
-            auto ask = *it_items_asks++;
-            items.emplace_back(bid.price, bid.volume, ask.price, ask.volume);
-        }
-        while (it_items_bids != items_bids.end()) {
-            auto bid = *it_items_bids++;
-            items.push_back(OrderBook::OrderBookItem::bid(bid.price, bid.volume));
-        }
-        while (it_items_asks != items_asks.end()) {
-            auto ask = *it_items_asks++;
-            items.push_back(OrderBook::OrderBookItem::ask(ask.price, ask.volume));
-        }
-
-        info.emplace_back(symbol, items);
+        info.emplace_back(symbol, items_bids, items_asks);
     }
     return info;
 }

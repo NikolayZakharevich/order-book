@@ -1,3 +1,5 @@
+#include <utility>
+
 #pragma once
 
 #include <vector>
@@ -81,28 +83,18 @@ struct Trade {
 };
 
 struct OrderBook {
+    struct Item {
+        int price;
+        int volume;
 
-    struct OrderBookItem {
-        int static const NONE = -1;
-        int bid_price;
-        int bid_volume;
-        int ask_price;
-        int ask_volume;
-
-        static OrderBookItem bid(int bid_price, int bid_volume) { return {bid_price, bid_volume, NONE, NONE}; }
-
-        static OrderBookItem ask(int ask_price, int ask_volume) { return {NONE, NONE, ask_price, ask_volume}; }
-
-        OrderBookItem(int bid_price, int bid_volume,
-                      int ask_price, int ask_volume) : bid_price(bid_price),
-                                                       bid_volume(bid_volume),
-                                                       ask_price(ask_price),
-                                                       ask_volume(ask_volume) {}
+        Item(int price, int volume) : price(price), volume(volume) {}
     };
 
     Symbol symbol;
-    std::vector<OrderBookItem> rows;
+    std::vector<Item> bids;
+    std::vector<Item> asks;
 
-    OrderBook(Symbol symbol, std::vector<OrderBookItem> rows) : symbol(std::move(symbol)), rows(std::move(rows)) {}
+    OrderBook(Symbol symbol, std::vector<Item> bids,
+              std::vector<Item> asks) : symbol(std::move(symbol)), bids(std::move(bids)), asks(std::move(asks)) {}
 };
 
