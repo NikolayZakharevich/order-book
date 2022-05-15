@@ -7,13 +7,10 @@ template<typename Compare>
 void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order);
 
 template<typename Compare>
-void remove(Queues<Compare> &orders, Symbol const &symbol, OrderId order_id);
+void remove(Queues<Compare> &queues, Symbol const &symbol, OrderId order_id);
 
-
-Order dummyOrder(OrderId order_id) {
-    return {order_id, 0, 0, 0};
-}
-
+template<typename Compare>
+void remove(Queues<Compare> &queues, Symbol const &symbol, std::vector<Order>::iterator it_order);
 
 CLOBEngine::CLOBEngine() noexcept {
     buys = std::unordered_map<Symbol, Queue<BuysComparator>>();
@@ -203,7 +200,7 @@ void CLOBEngine::matchImpl(
 
         if (best_passive_order.volume > aggressive_order.volume) {
             best_passive_order.volume -= aggressive_order.volume;
-            auto it = passive_orders.find(dummyOrder(best_passive_order.order_id));
+            auto it = passive_orders.find(best_passive_order.order_id);
             passive_orders.remove(it);;
             passive_orders.push(best_passive_order);
             return;
@@ -220,14 +217,12 @@ void CLOBEngine::matchImpl(
 
 template<typename Compare>
 void CLOBEngine::amendImpl(Queue<Compare> &queue, Symbol symbol, Amend amend, bool is_buy) {
-    auto it = queue.find(dummyOrder(amend.order_id));
+    auto it = queue.find(amend.order_id);
     if (it == queue.end()) {
         return;
     }
     if (it->price == amend.price && it->volume > amend.volume) {
-        Order order = Order(it->order_id, it->price, amend.volume, it->time);
-        queue.remove(it);
-        queue.push(order);
+        *it = Order(it->order_id, it->price, amend.volume, it->time);
         return;
     }
 
@@ -255,12 +250,17 @@ void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order) {
 }
 
 template<typename Compare>
-void remove(Queues<Compare> &orders, Symbol const &symbol, OrderId order_id) {
-    auto it = orders[symbol].find(dummyOrder(order_id));
-    if (it != orders[symbol].end()) {
-        orders[symbol].remove(it);
+void remove(Queues<Compare> &queues, Symbol const &symbol, OrderId order_id) {
+    auto it_order = queues[symbol].find(order_id);
+    if (it_order != queues[symbol].end()) {
+        remove(queues, symbol, it_order);
     }
-    if (orders[symbol].empty()) {
-        orders.erase(symbol);
+}
+
+template<typename Compare>
+void remove(Queues<Compare> &queues, Symbol const &symbol, std::vector<Order>::iterator it_order) {
+    queues[symbol].remove(it_order);
+    if (queues[symbol].empty()) {
+        queues.erase(symbol);
     }
 }
