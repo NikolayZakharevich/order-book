@@ -15,7 +15,7 @@ std::vector<std::string> run(std::vector<std::string> const &input) {
 
     std::vector<std::string> result = toString(engine.getTrades(), engine.getOrderBooks());
     for (const auto &row : result) {
-        std::cerr << row << "\n";
+//        std::cerr << row << "\n";
     }
     return result;
 }
@@ -123,11 +123,67 @@ void test_amend() {
     assert(result[5] == "45.95,16,46,5");
 }
 
+void test_pull() {
+    std::cout << "pull" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,WEBB,BUY,45.95,5");
+    input.emplace_back("INSERT,2,WEBB,BUY,45.95,6");
+    input.emplace_back("INSERT,3,WEBB,BUY,45.95,12");
+    input.emplace_back("INSERT,4,WEBB,SELL,46,8");
+    input.emplace_back("AMEND,2,46,3");
+    input.emplace_back("INSERT,5,WEBB,SELL,45.95,1");
+    input.emplace_back("AMEND,1,45.95,3");
+    input.emplace_back("INSERT,6,WEBB,SELL,45.95,1");
+    input.emplace_back("AMEND,1,45.95,5");
+    input.emplace_back("INSERT,7,WEBB,SELL,45.95,1");
+    input.emplace_back("PULL,1");
+    input.emplace_back("PULL,2");
+    input.emplace_back("PULL,3");
+    input.emplace_back("PULL,4");
+    input.emplace_back("PULL,5");
+    input.emplace_back("PULL,6");
+    input.emplace_back("PULL,7");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 4);
+    assert(result[0] == "WEBB,46,3,2,4");
+    assert(result[1] == "WEBB,45.95,1,5,1");
+    assert(result[2] == "WEBB,45.95,1,6,1");
+    assert(result[3] == "WEBB,45.95,1,7,3");
+}
+
+
+void test_many_trades() {
+    std::cout << "many trades" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    int count = 1000000;
+    int sell_id = count + 1;
+    for (int buy_id = 1; buy_id <= count; ++buy_id) {
+        input.emplace_back("INSERT," + std::to_string(buy_id) + ",WEBB,BUY,45.95,10");
+    }
+    input.emplace_back("INSERT," + std::to_string(sell_id) + ",WEBB,SELL,45.95,10000001");
+
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == count + 2);
+    for (int i = 0; i < count; ++i) {
+        assert(result[i] == "WEBB,45.95,10," + std::to_string(sell_id) + "," + std::to_string(i + 1));
+    }
+    assert(result[count] == "===WEBB===");
+    assert(result[count + 1] == ",,45.95,1");
+}
+
+
 int main() {
     test_insert();
     test_simple_match();
     test_multi_insert_multi_match();
     test_multi_symbol();
     test_amend();
+    test_pull();
+    test_many_trades();
+    std::cout << "OK" << std::endl;
     return 0;
 }
