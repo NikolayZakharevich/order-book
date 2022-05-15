@@ -100,21 +100,15 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
     order_books.reserve(symbols.size());
 
     for (Symbol const &symbol : symbols) {
-        auto it_buys = buys.find(symbol);
-        auto it_sells = sells.find(symbol);
-
         std::vector<OrderBook::Item> items_bids, items_asks;
+        auto it_buys = buys.find(symbol);
         if (it_buys != buys.end()) {
             items_bids = extractItems(it_buys->second);
-        } else {
-            items_bids = std::vector<OrderBook::Item>();
         }
+        auto it_sells = sells.find(symbol);
         if (it_sells != sells.end()) {
             items_asks = extractItems(it_sells->second);
-        } else {
-            items_asks = std::vector<OrderBook::Item>();
         }
-
         order_books.emplace_back(symbol, items_bids, items_asks);
     }
     return order_books;
