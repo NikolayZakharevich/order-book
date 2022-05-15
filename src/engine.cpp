@@ -84,8 +84,8 @@ std::vector<OrderBook::Item> extractItems(Queue<Compare> queue) {
     }
     Order order = queue.top();
     queue.pop();
-    int64_t cur_price = order.price;
-    int64_t cur_volume = order.volume;
+    Price cur_price = order.price;
+    Volume cur_volume = order.volume;
     while (!queue.empty()) {
         order = queue.top();
         queue.pop();
