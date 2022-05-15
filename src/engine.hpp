@@ -1,67 +1,36 @@
-#include <utility>
-
 #pragma once
 
 #include "commands.hpp"
+#include "queue.hpp"
 
+#include <utility>
 #include <unordered_map>
 #include <vector>
-#include <queue>
-#include <algorithm>
-#include <ostream>
-
-
-template<typename T, class Compare>
-class priority_queue : public std::priority_queue<T, std::vector<T>, Compare> {
-public:
-    typedef typename std::vector<T>::iterator iterator;
-    typedef typename std::vector<T>::const_iterator const_iterator;
-
-
-    T &top() { return this->c.front(); }
-
-    bool remove_if(std::function<bool(T)> predicate) {
-        auto it = std::find_if(this->c.begin(), this->c.end(), predicate);
-        if (it != this->c.end()) {
-            remove(it);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    void remove(iterator it) {
-        this->c.erase(it);
-        std::make_heap(this->c.begin(), this->c.end(), this->comp);
-    }
-
-    iterator find_if(std::function<bool(T)> predicate) {
-        return std::find_if(this->c.begin(), this->c.end(), predicate);
-    }
-
-    const_iterator end() const { return this->c.end(); }
-};
 
 
 struct Order {
     OrderId order_id;
     int price; // x10000
-    int volume;
+    mutable int volume;
     int time;
 
     Order(OrderId order_id, int price, int volume, int time) : order_id(order_id), price(price), volume(volume),
                                                                time(time) {}
+
+    bool operator==(Order const &rhs) const {
+        return order_id == rhs.order_id;
+    }
 };
 
 struct BuysComparator {
-    bool operator()(Order const &lhs, Order const &rhs) {
-        return lhs.price != rhs.price ? lhs.price < rhs.price : lhs.time > rhs.time;
+    bool operator()(Order const &lhs, Order const &rhs) const {
+        return lhs.price != rhs.price ? lhs.price > rhs.price : lhs.time < rhs.time;
     }
 };
 
 struct SellsComparator {
-    bool operator()(Order const &lhs, Order const &rhs) {
-        return lhs.price != rhs.price ? lhs.price > rhs.price : lhs.time > rhs.time;
+    bool operator()(Order const &lhs, Order const &rhs) const {
+        return lhs.price != rhs.price ? lhs.price < rhs.price : lhs.time < rhs.time;
     }
 };
 
@@ -105,9 +74,7 @@ private:
     void matchImpl(
             std::unordered_map<std::string, priority_queue<Order, Comp1>> &aggressive_orders,
             std::unordered_map<std::string, priority_queue<Order, Comp2>> &passive_orders,
-            Symbol symbol,
-            Order &aggressive_order,
-            bool is_aggressive_order_buy
+            Symbol symbol, Order &aggressive_order, bool is_aggressive_order_buy
     );
 
     void matchSell(Symbol symbol, Order &sell) {

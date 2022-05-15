@@ -2,8 +2,6 @@
 
 #include <vector>
 #include <unordered_map>
-#include <queue>
-
 
 template<typename Comp>
 void push(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders, Symbol const &symbol,
@@ -14,10 +12,8 @@ void remove(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders
             OrderId order_id);
 
 
-std::function<bool(Order)> predicateOrderId(OrderId order_id) {
-    return [&order_id](Order const &item) {
-        return item.order_id == order_id;
-    };
+Order dummyOrder(OrderId order_id) {
+    return {order_id, 0, 0, 0};
 }
 
 template<typename Comp1, typename Comp2>
@@ -36,7 +32,7 @@ void CLOBEngine::matchImpl(
             return;
         }
 
-        Order &best_passive_order = it_passive_orders->second.top();
+        Order best_passive_order = it_passive_orders->second.top();
         bool is_not_match = (is_aggressive_order_buy && aggressive_order.price < best_passive_order.price) ||
                             (!is_aggressive_order_buy && best_passive_order.price < aggressive_order.price);
         if (is_not_match) {
@@ -50,6 +46,9 @@ void CLOBEngine::matchImpl(
 
         if (best_passive_order.volume > aggressive_order.volume) {
             best_passive_order.volume -= aggressive_order.volume;
+            auto it = it_passive_orders->second.find(dummyOrder(best_passive_order.order_id));
+            it_passive_orders->second.remove(it);;
+            it_passive_orders->second.push(best_passive_order);
             return;
         } else if (aggressive_order.volume > best_passive_order.volume) {
             aggressive_order.volume -= best_passive_order.volume;
@@ -64,12 +63,14 @@ void CLOBEngine::matchImpl(
 
 template<typename Comp>
 void CLOBEngine::amendImpl(priority_queue<Order, Comp> &queue, Symbol symbol, Amend amend, bool is_buy) {
-    auto it = queue.find_if(predicateOrderId(amend.order_id));
+    auto it = queue.find(dummyOrder(amend.order_id));
     if (it == queue.end()) {
         return;
     }
     if (it->price == amend.price && it->volume > amend.volume) {
-        *it = Order(amend.order_id, amend.price, amend.volume, it->time);
+        Order order = Order(it->order_id, it->price, amend.volume, it->time);
+        queue.remove(it);
+        queue.push(order);
         return;
     }
 
@@ -97,7 +98,6 @@ void CLOBEngine::visitInsert(Insert const &insert) {
             matchSell(insert.symbol, order);
             break;
     }
-
 }
 
 void CLOBEngine::visitAmend(Amend const &amend) {
@@ -146,8 +146,8 @@ struct Item {
     Item(int price, int volume) : price(price), volume(volume) {}
 };
 
-template<typename Comp>
-std::vector<Item> extractItems(priority_queue<Order, Comp> &queue) {
+template<typename Compare>
+std::vector<Item> extractItems(priority_queue<Order, Compare> &queue) {
     std::vector<Item> items = std::vector<Item>();
     if (queue.empty()) {
         return items;
@@ -231,12 +231,12 @@ std::vector<Trade> CLOBEngine::getTrades() {
     return trades;
 }
 
-template<typename Comp>
-void push(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders, Symbol const &symbol,
+template<typename Compare>
+void push(std::unordered_map<std::string, priority_queue<Order, Compare>> &orders, Symbol const &symbol,
           Order const &order) {
     auto it = orders.find(symbol);
     if (it == orders.end()) {
-        auto queue = priority_queue<Order, Comp>();
+        auto queue = priority_queue<Order, Compare>();
         queue.push(order);
         orders[symbol] = queue;
     } else {
@@ -244,12 +244,14 @@ void push(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders, 
     }
 }
 
-template<typename Comp>
-void remove(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders, Symbol const &symbol,
+template<typename Compare>
+void remove(std::unordered_map<std::string, priority_queue<Order, Compare>> &orders, Symbol const &symbol,
             OrderId order_id) {
-    priority_queue<Order, Comp> &orders_by_symbol = orders[symbol];
-    orders_by_symbol.remove_if(predicateOrderId(order_id));
-    if (orders_by_symbol.empty()) {
+    auto it = orders[symbol].find(dummyOrder(order_id));
+    if (it != orders[symbol].end()) {
+        orders[symbol].remove(it);
+    }
+    if (orders[symbol].empty()) {
         orders.erase(symbol);
     }
 }
