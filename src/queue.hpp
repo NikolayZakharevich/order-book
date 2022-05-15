@@ -92,8 +92,9 @@ void priority_queue<Key, Element, Compare>::makeHeap() {
 
 template<typename Key, typename Element, class Compare>
 void priority_queue<Key, Element, Compare>::siftUp(size_t i) {
-    while (cmp(elements[i], elements[(i - 1) / 2])) {
+    while (i > 0 && cmp(elements[i], elements[(i - 1) / 2])) {
         std::swap(elements[i], elements[(i - 1) / 2]);
+        i = (i - 1) / 2;
     }
 }
 
