@@ -4,6 +4,10 @@
 #include <unordered_map>
 #include <functional>
 
+/**
+ * This queue supports fast operations with values using their keys.
+ * Keys can be represented as unique identifiers of values, they are used in search.
+ */
 template<typename Key, typename Value, class Compare>
 class priority_queue {
 
@@ -14,11 +18,10 @@ public:
 
     priority_queue() = default;
 
-    priority_queue(std::function<Key(Value)> const &value_to_key) : value_to_key(value_to_key) {
-        cmp = Compare();
-        values = std::vector<Value>();
-        key_indexes = std::unordered_map<Key, size_t>();
-    }
+    /**
+     * @param value_to_key - mapping from values to keys
+     */
+    priority_queue(std::function<Key(Value)> const &value_to_key);
 
     /**
      * Inserts the element to the queue.
@@ -73,12 +76,12 @@ public:
     /**
      * Return iterator to the queue end
      */
-    iterator end() { return values.end(); }
+    iterator end();
 
     /**
      * Return constant iterator to the queue end
      */
-    const iterator end() const { return values.end(); }
+    const_iterator end() const;
 
 private:
 
@@ -95,6 +98,14 @@ private:
 
     void swap(size_t index_from, size_t index_to);
 };
+
+template<typename Key, typename Value, class Compare>
+priority_queue<Key, Value, Compare>::priority_queue(std::function<Key(Value)> const &value_to_key) :
+        value_to_key(value_to_key) {
+    cmp = Compare();
+    values = std::vector<Value>();
+    key_indexes = std::unordered_map<Key, size_t>();
+}
 
 template<typename Key, typename Value, class Compare>
 void priority_queue<Key, Value, Compare>::push(Value const &value) {
@@ -143,6 +154,16 @@ void priority_queue<Key, Value, Compare>::remove(priority_queue::iterator it) {
 template<typename Key, typename Value, class Compare>
 bool priority_queue<Key, Value, Compare>::empty() {
     return values.empty();
+}
+
+template<typename Key, typename Value, class Compare>
+typename priority_queue<Key, Value, Compare>::iterator priority_queue<Key, Value, Compare>::end() {
+    return values.end();
+}
+
+template<typename Key, typename Value, class Compare>
+typename priority_queue<Key, Value, Compare>::const_iterator priority_queue<Key, Value, Compare>::end() const {
+    return end();
 }
 
 template<typename Key, typename Value, class Compare>

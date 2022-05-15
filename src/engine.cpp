@@ -69,7 +69,7 @@ void CLOBEngine::visitPull(Pull const &pull) {
 
 
 template<typename Compare>
-std::vector<OrderBook::Item> extractItems(Queue<Compare> &queue) {
+std::vector<OrderBook::Item> extractItems(Queue<Compare> queue) {
     std::vector<OrderBook::Item> items = std::vector<OrderBook::Item>();
     if (queue.empty()) {
         return items;
@@ -97,13 +97,10 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
     std::vector<Symbol> symbols;
     symbols.reserve(buys.size() + sells.size());
 
-    auto buys_copy = buys;
-    auto sells_copy = sells;
-
-    for (auto const &it : buys_copy) {
+    for (auto const &it : buys) {
         symbols.push_back(it.first);
     }
-    for (auto const &r : sells_copy) {
+    for (auto const &r : sells) {
         symbols.push_back(r.first);
     }
 
@@ -112,16 +109,16 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
 
     std::vector<OrderBook> info = std::vector<OrderBook>();
     for (Symbol const &symbol : symbols) {
-        auto it_buys = buys_copy.find(symbol);
-        auto it_sells = sells_copy.find(symbol);
+        auto it_buys = buys.find(symbol);
+        auto it_sells = sells.find(symbol);
 
         std::vector<OrderBook::Item> items_bids, items_asks;
-        if (it_buys != buys_copy.end()) {
+        if (it_buys != buys.end()) {
             items_bids = extractItems(it_buys->second);
         } else {
             items_bids = std::vector<OrderBook::Item>();
         }
-        if (it_sells != sells_copy.end()) {
+        if (it_sells != sells.end()) {
             items_asks = extractItems(it_sells->second);
         } else {
             items_asks = std::vector<OrderBook::Item>();
@@ -145,7 +142,6 @@ void CLOBEngine::matchImpl(
         bool is_buy
 ) {
     while (true) {
-
         auto it_passive_orders = passive_queues.find(symbol);
         if (it_passive_orders == passive_queues.end() || it_passive_orders->second.empty()) {
             push(aggressive_queues, symbol, aggressive_order);
