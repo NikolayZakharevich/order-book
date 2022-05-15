@@ -13,27 +13,9 @@ std::shared_ptr<Amend> parseAmend(const std::vector<std::string> &amend_parts);
 
 std::shared_ptr<Pull> parsePull(const std::vector<std::string> &pull_parts);
 
-std::string toStringItem(std::optional<OrderBook::Item> bid_opt, std::optional<OrderBook::Item> ask_opt) {
-    std::stringstream stream;
-    if (bid_opt.has_value()) {
-        stream << (double) bid_opt.value().price / 10000;
-        stream << ',';
-        stream << bid_opt.value().volume;
-        stream << ',';
-    } else {
-        stream << ",,";
-    }
-    if (ask_opt.has_value()) {
-        stream << (double) ask_opt.value().price / 10000;
-        stream << ',';
-        stream << ask_opt.value().volume;
-    } else {
-        stream << ",";
-    }
-    return stream.str();
-}
+std::string toStringItem(std::optional<OrderBook::Item> bid_opt, std::optional<OrderBook::Item> ask_opt);
 
-int parsePrice(const std::string &price_str);
+Price parsePrice(std::string_view price_str);
 
 /**
  * Every command starts with either "INSERT", "AMEND" or "PULL" with additional
@@ -114,8 +96,8 @@ std::shared_ptr<Insert> parseInsert(const std::vector<std::string> &insert_parts
     } else {
         throw std::runtime_error("invalid insert");
     }
-    int price = parsePrice(insert_parts[4]);
-    int volume = std::stoi(insert_parts[5]);
+    Price price = parsePrice(insert_parts[4]);
+    Volume volume = std::stoi(insert_parts[5]);
     return std::make_shared<Insert>(order_id, symbol, side, price, volume);
 }
 
@@ -129,8 +111,8 @@ std::shared_ptr<Amend> parseAmend(const std::vector<std::string> &amend_parts) {
         throw std::runtime_error("invalid amend");
     }
     OrderId order_id = std::stoi(amend_parts[1]);
-    int price = parsePrice(amend_parts[2]);
-    int volume = std::stoi(amend_parts[3]);
+    Price price = parsePrice(amend_parts[2]);
+    Volume volume = std::stoi(amend_parts[3]);
     return std::make_shared<Amend>(order_id, price, volume);
 }
 
@@ -158,15 +140,15 @@ std::vector<std::string> splitByChar(const std::string &string, char c) {
     return result;
 }
 
-int parsePrice(const std::string &price_str) {
+Price parsePrice(std::string_view price_str) {
     if (price_str.empty()) {
         return 0;
     }
     bool is_fractional_part = false;
-    int fractional_part_cnt = 0;
+    int32_t fractional_part_cnt = 0;
 
     auto it = price_str.begin();
-    int result = (*it++) - '0';
+    int32_t result = (*it++) - '0';
     while (it != price_str.end()) {
         if (*it == '.') {
             ++it;
@@ -184,4 +166,24 @@ int parsePrice(const std::string &price_str) {
         result *= 10;
     }
     return result;
+}
+
+std::string toStringItem(std::optional<OrderBook::Item> bid_opt, std::optional<OrderBook::Item> ask_opt) {
+    std::stringstream stream;
+    if (bid_opt.has_value()) {
+        stream << (double) bid_opt.value().price / 10000;
+        stream << ',';
+        stream << bid_opt.value().volume;
+        stream << ',';
+    } else {
+        stream << ",,";
+    }
+    if (ask_opt.has_value()) {
+        stream << (double) ask_opt.value().price / 10000;
+        stream << ',';
+        stream << ask_opt.value().volume;
+    } else {
+        stream << ",";
+    }
+    return stream.str();
 }

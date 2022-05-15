@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 template<typename Key, typename Value, class Compare>
 class priority_queue {
@@ -11,7 +12,7 @@ public:
     typedef typename std::vector<Value>::iterator iterator;
     typedef typename std::vector<Value>::const_iterator const_iterator;
 
-    priority_queue() {}
+    priority_queue() = default;
 
     priority_queue(std::function<Key(Value)> const &value_to_key) : value_to_key(value_to_key) {
         cmp = Compare();
@@ -70,12 +71,12 @@ public:
     bool empty();
 
     /**
-     * Return the iterator to the queue end
+     * Return iterator to the queue end
      */
     iterator end() { return values.end(); }
 
     /**
-     * Return the iterator to the queue end
+     * Return constant iterator to the queue end
      */
     const iterator end() const { return values.end(); }
 
@@ -144,7 +145,6 @@ bool priority_queue<Key, Value, Compare>::empty() {
     return values.empty();
 }
 
-
 template<typename Key, typename Value, class Compare>
 void priority_queue<Key, Value, Compare>::siftUp(size_t index_from) {
     while (index_from > 0 && cmp(values[index_from], values[(index_from - 1) / 2])) {
@@ -152,7 +152,6 @@ void priority_queue<Key, Value, Compare>::siftUp(size_t index_from) {
         index_from = (index_from - 1) / 2;
     }
 }
-
 
 template<typename Key, typename Value, class Compare>
 void priority_queue<Key, Value, Compare>::siftDown(size_t index_from) {

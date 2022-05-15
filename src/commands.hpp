@@ -4,8 +4,10 @@
 #include <string>
 #include <utility>
 
-typedef int OrderId;
+typedef int64_t OrderId;
 typedef std::string Symbol;
+typedef int32_t Price;
+typedef int32_t Volume;
 
 enum Side {
     BUY, SELL
@@ -36,25 +38,25 @@ struct Insert : Command {
     OrderId order_id;
     Symbol symbol;
     Side side; //
-    int price; // x10000
-    int volume;
+    Price price; // x10000
+    Volume volume;
 
     Insert(OrderId order_id, Symbol symbol, Side side,
-           int price, int volume) : order_id(order_id),
-                                    symbol(std::move(symbol)),
-                                    side(side),
-                                    price(price),
-                                    volume(volume) {}
+           Price price, Volume volume) : order_id(order_id),
+                                         symbol(std::move(symbol)),
+                                         side(side),
+                                         price(price),
+                                         volume(volume) {}
 
     void accept(CommandVisitor *vistitor) const override { vistitor->visitInsert(*this); }
 };
 
 struct Amend : Command {
     OrderId order_id;
-    int price; // x10000
-    int volume;
+    Price price; // x10000
+    Volume volume;
 
-    Amend(OrderId order_id, int price, int volume) : order_id(order_id), price(price), volume(volume) {}
+    Amend(OrderId order_id, Price price, Volume volume) : order_id(order_id), price(price), volume(volume) {}
 
     void accept(CommandVisitor *visitor) const override { visitor->visitAmend(*this); }
 };
@@ -71,22 +73,22 @@ struct Pull : Command {
 
 struct Trade {
     Symbol symbol;
-    int price; // x10000
-    int volume;
+    Price price; // x10000
+    Volume volume;
     OrderId aggressive_order_id;
     OrderId passive_order_id;
 
-    Trade(Symbol symbol, int price, int volume, OrderId aggressive_order_id,
+    Trade(Symbol symbol, Price price, Volume volume, OrderId aggressive_order_id,
           OrderId passive_order_id) : symbol(std::move(symbol)), price(price), volume(volume),
                                       aggressive_order_id(aggressive_order_id), passive_order_id(passive_order_id) {}
 };
 
 struct OrderBook {
     struct Item {
-        int price;
-        int volume;
+        Price price;
+        Volume volume;
 
-        Item(int price, int volume) : price(price), volume(volume) {}
+        Item(Price price, Volume volume) : price(price), volume(volume) {}
     };
 
     Symbol symbol;

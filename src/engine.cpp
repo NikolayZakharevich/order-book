@@ -21,11 +21,9 @@ CLOBEngine::CLOBEngine() noexcept {
     cur_time = 0;
 }
 
-
 void CLOBEngine::visitInsert(Insert const &insert) {
     Order order(insert.order_id, insert.price, insert.volume, ++cur_time);
     order_infos[order.order_id] = OrderInfo(insert.symbol, insert.side);
-
     switch (insert.side) {
         case Side::BUY:
             matchImpl(buys, sells, insert.symbol, order, true);
@@ -41,7 +39,6 @@ void CLOBEngine::visitAmend(Amend const &amend) {
     if (it_info == order_infos.end()) {
         return;
     }
-
     Symbol symbol = it_info->second.symbol;
     switch (it_info->second.side) {
         case Side::BUY:
@@ -79,8 +76,8 @@ std::vector<OrderBook::Item> extractItems(Queue<Compare> &queue) {
     }
     Order order = queue.top();
     queue.pop();
-    int cur_price = order.price;
-    int cur_volume = order.volume;
+    int64_t cur_price = order.price;
+    int64_t cur_volume = order.volume;
     while (!queue.empty()) {
         order = queue.top();
         queue.pop();
@@ -164,8 +161,8 @@ void CLOBEngine::matchImpl(
             return;
         }
 
-        int price = (is_buy ? aggressive_order : best_passive_order).price;
-        int volume = std::min(best_passive_order.volume, aggressive_order.volume);
+        Price price = (is_buy ? aggressive_order : best_passive_order).price;
+        Volume volume = std::min(best_passive_order.volume, aggressive_order.volume);
         trades.emplace_back(symbol, price, volume, aggressive_order.order_id, best_passive_order.order_id);
 
         if (best_passive_order.volume > aggressive_order.volume) {

@@ -10,23 +10,20 @@
 
 struct Order {
     OrderId order_id;
-    int price; // x10000
-    mutable int volume;
-    int time;
+    Price price; // x10000
+    Volume volume;
+    int64_t time;
 
-    Order(OrderId order_id, int price, int volume, int time) : order_id(order_id), price(price), volume(volume),
-                                                               time(time) {}
-
-    bool operator==(Order const &rhs) const {
-        return order_id == rhs.order_id;
-    }
+    Order(OrderId order_id, Price price, Volume volume,
+          int64_t time) : order_id(order_id), price(price), volume(volume), time(time) {}
 };
 
 struct OrderInfo {
     Symbol symbol;
     Side side;
 
-    OrderInfo() {};
+    OrderInfo() = default;
+
     OrderInfo(Symbol symbol, Side side) : symbol(std::move(symbol)), side(side) {}
 };
 
@@ -65,7 +62,7 @@ public:
     std::vector<OrderBook> getOrderBooks();
 
 private:
-    int cur_time;
+    int64_t cur_time;
     Queues<BuysComparator> buys;
     Queues<SellsComparator> sells;
     std::vector<Trade> trades;
