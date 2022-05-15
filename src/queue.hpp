@@ -20,22 +20,64 @@ public:
         key_indexes = std::unordered_map<Key, size_t>();
     }
 
-    Value top() const;
-
-    Value &top();
-
-    void remove(iterator it);
-
-    iterator find(Value value);
-
-    bool empty();
-
-    void pop();
-
+    /**
+     * Inserts the element to the queue.
+     * O(log(n)) time complexity
+     */
     void push(const Value &value);
 
+    /**
+     * Returns the minimum element from the queue
+     * O(1) time complexity
+     */
+    Value top() const;
+
+    /**
+     * Returns the minimum element from the queue. Allows to change the element so it can broke the class invariant
+     * O(1) time complexity
+     */
+    Value &top();
+
+    /**
+     * If such element exists in the queue returns the iterator pointing at it.
+     * Otherwise, returns iterator the end of queue {@see end()}
+     * O(1) time complexity
+     */
+    iterator find(Value value);
+
+    /**
+     * If element with such key exists in the queue returns the iterator pointing at it.
+     * Otherwise, returns iterator the end of queue {@see end()}
+     * O(1) time complexity
+     */
+    iterator find(Key key);
+
+    /**
+     * If iterator is valid, removes the element from queue
+     * O(log(n)) time complexity
+     */
+    void remove(iterator it);
+
+    /**
+     * Removes the minimum element from queue. To get the minimum element {@see top()}
+     * O(log(n)) time complexity
+     */
+    void pop();
+
+    /**
+     * `true` if there are no elements in queue, `false` otherwise
+     * O(1) time complexity
+     */
+    bool empty();
+
+    /**
+     * Return the iterator to the queue end
+     */
     iterator end() { return values.end(); }
 
+    /**
+     * Return the iterator to the queue end
+     */
     const iterator end() const { return values.end(); }
 
 private:
@@ -54,6 +96,15 @@ private:
     void swap(size_t index_from, size_t index_to);
 };
 
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::push(Value const &value) {
+    values.push_back(value);
+    size_t index_back = values.size() - 1;
+    key_indexes[value_to_key(value)] = index_back;
+    if (index_back > 0) {
+        siftUp(index_back);
+    }
+}
 
 template<typename Key, typename Value, class Compare>
 Value &priority_queue<Key, Value, Compare>::top() {
@@ -66,29 +117,22 @@ Value priority_queue<Key, Value, Compare>::top() const {
 }
 
 template<typename Key, typename Value, class Compare>
-void priority_queue<Key, Value, Compare>::push(Value const &value) {
-    values.push_back(value);
-    size_t index_back = values.size() - 1;
-    key_indexes[value_to_key(value)] = index_back;
-    if (index_back > 0) {
-        siftUp(index_back);
-    }
-}
-
-template<typename Key, typename Value, class Compare>
-void priority_queue<Key, Value, Compare>::pop() {
-    remove(0);
-}
-
-
-template<typename Key, typename Value, class Compare>
 typename priority_queue<Key, Value, Compare>::iterator priority_queue<Key, Value, Compare>::find(Value value) {
-    Key key = value_to_key(value);
+    return find(value_to_key(value));
+}
+
+template<typename Key, typename Value, class Compare>
+typename priority_queue<Key, Value, Compare>::iterator priority_queue<Key, Value, Compare>::find(Key key) {
     auto it = key_indexes.find(key);
     if (it == key_indexes.end()) {
         return end();
     }
     return values.begin() + it->second;
+}
+
+template<typename Key, typename Value, class Compare>
+void priority_queue<Key, Value, Compare>::pop() {
+    remove(0);
 }
 
 template<typename Key, typename Value, class Compare>
