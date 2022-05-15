@@ -246,9 +246,9 @@ template<typename Compare>
 void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order) {
     auto it = queues.find(symbol);
     if (it == queues.end()) {
-        auto queue = Queue<Compare>();
+        auto queue = Queue<Compare>([](const Order &order) { return order.order_id; });
         queue.push(order);
-        queues[symbol] = queue;
+        queues.insert({symbol, queue});
     } else {
         it->second.push(order);
     }

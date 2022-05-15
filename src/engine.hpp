@@ -23,7 +23,7 @@ struct Order {
 };
 
 template<typename Compare>
-using Queue = priority_queue<Order, Compare>;
+using Queue = priority_queue<OrderId, Order, Compare>;
 
 template<typename Compare>
 using Queues = std::unordered_map<std::string, Queue<Compare>>;
