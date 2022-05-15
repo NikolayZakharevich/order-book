@@ -127,21 +127,28 @@ void CLOBEngine::matchImpl(
         bool is_buy
 ) {
     while (true) {
+        // check for passive orders queue
         auto it_passive_orders = passive_queues.find(symbol);
+        // if there are no passive orders, push order to queue
         if (it_passive_orders == passive_queues.end() || it_passive_orders->second.empty()) {
             push(aggressive_queues, symbol, aggressive_order);
             return;
         }
-        Queue<ComparePassive> &passive_orders = it_passive_orders->second;
 
+        // get best passive order from queue
+        Queue<ComparePassive> &passive_orders = it_passive_orders->second;
         Order best_passive_order = passive_orders.top();
+
+        // orders matched if buy price is lower or equal than sell price
         bool is_match = (is_buy && best_passive_order.price <= aggressive_order.price) ||
                         (!is_buy && aggressive_order.price <= best_passive_order.price);
+        // if there is no match, push order to queue
         if (!is_match) {
             push(aggressive_queues, symbol, aggressive_order);
             return;
         }
 
+        // if there is a match, save a trade
         Price price = (is_buy ? aggressive_order : best_passive_order).price;
         Volume volume = std::min(best_passive_order.volume, aggressive_order.volume);
         trades.emplace_back(symbol, price, volume, aggressive_order.order_id, best_passive_order.order_id);
