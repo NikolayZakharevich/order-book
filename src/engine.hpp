@@ -66,7 +66,7 @@ private:
     std::unordered_map<OrderId, Side> order_sides;
 
     template<typename Compare>
-    void amendImpl(Queue<Compare> &queue, Symbol symbol, Amend amend, bool is_buy);
+    void amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend amend, bool is_buy);
 
     template<typename CompareAggressive, typename ComparePassive>
     void matchImpl(

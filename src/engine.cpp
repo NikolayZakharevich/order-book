@@ -49,10 +49,10 @@ void CLOBEngine::visitAmend(Amend const &amend) {
 
     switch (side) {
         case Side::BUY:
-            amendImpl(buys[symbol], symbol, amend, true);
+            amendImpl(buys, symbol, amend, true);
             break;
         case Side::SELL: {
-            amendImpl(sells[symbol], symbol, amend, false);
+            amendImpl(sells, symbol, amend, false);
             break;
         }
     }
@@ -201,8 +201,8 @@ void CLOBEngine::matchImpl(
         if (best_passive_order.volume > aggressive_order.volume) {
             best_passive_order.volume -= aggressive_order.volume;
             auto it = passive_orders.find(best_passive_order.order_id);
-            passive_orders.remove(it);;
-            passive_orders.push(best_passive_order);
+            remove(passive_queues, symbol, it);
+            push(passive_queues, symbol, best_passive_order);
             return;
         } else if (aggressive_order.volume > best_passive_order.volume) {
             aggressive_order.volume -= best_passive_order.volume;
@@ -216,7 +216,8 @@ void CLOBEngine::matchImpl(
 
 
 template<typename Compare>
-void CLOBEngine::amendImpl(Queue<Compare> &queue, Symbol symbol, Amend amend, bool is_buy) {
+void CLOBEngine::amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend amend, bool is_buy) {
+    Queue<Compare> &queue = queues[symbol];
     auto it = queue.find(amend.order_id);
     if (it == queue.end()) {
         return;
@@ -227,7 +228,7 @@ void CLOBEngine::amendImpl(Queue<Compare> &queue, Symbol symbol, Amend amend, bo
     }
 
     Order order = Order(amend.order_id, amend.price, amend.volume, ++cur_time);
-    queue.remove(it);
+    remove(queues, symbol, it);
 
     if (is_buy) {
         matchBuy(symbol, order);

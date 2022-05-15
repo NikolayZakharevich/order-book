@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <assert.h>
 
 #include "../src/engine.hpp"
 #include "../src/serialize.hpp"
