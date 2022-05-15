@@ -96,7 +96,9 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
     std::sort(symbols.begin(), symbols.end());
     symbols.erase(std::unique(symbols.begin(), symbols.end()), symbols.end());
 
-    std::vector<OrderBook> info = std::vector<OrderBook>();
+    std::vector<OrderBook> order_books;
+    order_books.reserve(symbols.size());
+
     for (Symbol const &symbol : symbols) {
         auto it_buys = buys.find(symbol);
         auto it_sells = sells.find(symbol);
@@ -113,9 +115,9 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
             items_asks = std::vector<OrderBook::Item>();
         }
 
-        info.emplace_back(symbol, items_bids, items_asks);
+        order_books.emplace_back(symbol, items_bids, items_asks);
     }
-    return info;
+    return order_books;
 }
 
 std::vector<Trade> CLOBEngine::getTrades() {
