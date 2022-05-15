@@ -23,13 +23,23 @@ public:
     bool remove_if(std::function<bool(T)> predicate) {
         auto it = std::find_if(this->c.begin(), this->c.end(), predicate);
         if (it != this->c.end()) {
-            this->c.erase(it);
-            std::make_heap(this->c.begin(), this->c.end(), this->comp);
+            remove(it);
             return true;
         } else {
             return false;
         }
     }
+
+    void remove(iterator it) {
+        this->c.erase(it);
+        std::make_heap(this->c.begin(), this->c.end(), this->comp);
+    }
+
+    iterator find_if(std::function<bool(T)> predicate) {
+        return std::find_if(this->c.begin(), this->c.end(), predicate);
+    }
+
+    const_iterator end() const { return this->c.end(); }
 };
 
 
@@ -37,8 +47,10 @@ struct Order {
     OrderId order_id;
     int price; // x10000
     int volume;
+    int time;
 
-    Order(OrderId order_id, int price, int volume) : order_id(order_id), price(price), volume(volume) {}
+    Order(OrderId order_id, int price, int volume, int time) : order_id(order_id), price(price), volume(volume),
+                                                               time(time) {}
 
 
     friend std::ostream &operator<<(std::ostream &os, Order const &order);
@@ -46,13 +58,13 @@ struct Order {
 
 struct BuysComparator {
     bool operator()(Order const &lhs, Order const &rhs) {
-        return lhs.price != rhs.price ? lhs.price < rhs.price : lhs.order_id > rhs.order_id;
+        return lhs.price != rhs.price ? lhs.price < rhs.price : lhs.time > rhs.time;
     }
 };
 
 struct SellsComparator {
     bool operator()(Order const &lhs, Order const &rhs) {
-        return lhs.price != rhs.price ? lhs.price > rhs.price : lhs.order_id > rhs.order_id;
+        return lhs.price != rhs.price ? lhs.price > rhs.price : lhs.time > rhs.time;
     }
 };
 
@@ -67,6 +79,7 @@ public:
 
         order_symbols = std::unordered_map<OrderId, Symbol>();
         order_sides = std::unordered_map<OrderId, Side>();
+        cur_time = 0;
     }
 
     void visitInsert(Insert const &insert) override;
@@ -80,6 +93,7 @@ public:
     std::vector<OrderBook> getOrderBooks();
 
 private:
+    int cur_time;
     std::unordered_map<Symbol, priority_queue<Order, BuysComparator>> buys;
     std::unordered_map<Symbol, priority_queue<Order, SellsComparator>> sells;
     std::vector<Trade> trades;
@@ -87,8 +101,11 @@ private:
     std::unordered_map<OrderId, Symbol> order_symbols;
     std::unordered_map<OrderId, Side> order_sides;
 
+    template<typename Comp>
+    void amendImpl(priority_queue<Order, Comp> &queue, Symbol symbol, Amend amend, bool is_buy);
+
     template<typename Comp1, typename Comp2>
-    void match(
+    void matchImpl(
             std::unordered_map<std::string, priority_queue<Order, Comp1>> &aggressive_orders,
             std::unordered_map<std::string, priority_queue<Order, Comp2>> &passive_orders,
             Symbol symbol,
@@ -97,11 +114,11 @@ private:
     );
 
     void matchSell(Symbol symbol, Order &sell) {
-        match(sells, buys, std::move(symbol), sell, false);
+        matchImpl(sells, buys, std::move(symbol), sell, false);
     }
 
     void matchBuy(Symbol symbol, Order &buy) {
-        match(buys, sells, std::move(symbol), buy, true);
+        matchImpl(buys, sells, std::move(symbol), buy, true);
     }
 
 };

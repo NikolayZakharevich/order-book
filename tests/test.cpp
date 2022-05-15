@@ -34,7 +34,7 @@ void test_insert() {
 }
 
 void test_simple_match() {
-    std::cout << "simple match" << std::endl;
+    std::cout << "simple matchImpl" << std::endl;
 
     std::vector<std::string> input = std::vector<std::string>();
     input.emplace_back("INSERT,1,AAPL,BUY,12.2,5");
@@ -48,7 +48,7 @@ void test_simple_match() {
 }
 
 void test_multi_insert_multi_match() {
-    std::cout << "multi insert and multi match" << std::endl;
+    std::cout << "multi insert and multi matchImpl" << std::endl;
 
     std::vector<std::string> input = std::vector<std::string>();
     input.emplace_back("INSERT,1,AAPL,BUY,14.235,5");

@@ -31,8 +31,14 @@ void printQueue(std::unordered_map<std::string, priority_queue<Order, Comp>> &or
 }
 
 
+std::function<bool(Order)> predicateOrderId(OrderId order_id) {
+    return [&order_id](Order const &item) {
+        return item.order_id == order_id;
+    };
+}
+
 template<typename Comp1, typename Comp2>
-void CLOBEngine::match(
+void CLOBEngine::matchImpl(
         std::unordered_map<std::string, priority_queue<Order, Comp1>> &aggressive_orders,
         std::unordered_map<std::string, priority_queue<Order, Comp2>> &passive_orders,
         Symbol symbol,
@@ -72,8 +78,31 @@ void CLOBEngine::match(
     }
 }
 
+
+template<typename Comp>
+void CLOBEngine::amendImpl(priority_queue<Order, Comp> &queue, Symbol symbol, Amend amend, bool is_buy) {
+    auto it = queue.find_if(predicateOrderId(amend.order_id));
+    if (it == queue.end()) {
+        return;
+    }
+    if (it->price == amend.price && it->volume > amend.volume) {
+        *it = Order(amend.order_id, amend.price, amend.volume, it->time);
+        return;
+    }
+
+    Order order = Order(amend.order_id, amend.price, amend.volume, ++cur_time);
+    queue.remove(it);
+
+    if (is_buy) {
+        matchBuy(symbol, order);
+    } else {
+        matchSell(symbol, order);
+    }
+
+}
+
 void CLOBEngine::visitInsert(Insert const &insert) {
-    Order order = Order(insert.order_id, insert.price, insert.volume);
+    Order order = Order(insert.order_id, insert.price, insert.volume, ++cur_time);
     order_symbols[order.order_id] = insert.symbol;
     order_sides[order.order_id] = insert.side;
 
@@ -96,17 +125,15 @@ void CLOBEngine::visitAmend(Amend const &amend) {
 
     Symbol symbol = it_symbol->second;
     Side side = order_sides[amend.order_id];
-    Order order = Order(amend.order_id, amend.price, amend.volume);
 
     switch (side) {
         case Side::BUY:
-            remove(buys, symbol, order.order_id);
-            matchBuy(symbol, order);
+            amendImpl(buys[symbol], symbol, amend, true);
             break;
-        case Side::SELL:
-            remove(sells, symbol, order.order_id);
-            matchSell(symbol, order);
+        case Side::SELL: {
+            amendImpl(sells[symbol], symbol, amend, false);
             break;
+        }
     }
 }
 
@@ -238,15 +265,14 @@ template<typename Comp>
 void remove(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders, Symbol const &symbol,
             OrderId order_id) {
     priority_queue<Order, Comp> &orders_by_symbol = orders[symbol];
-    orders_by_symbol.remove_if([&order_id](Order const &item) {
-        return item.order_id == order_id;
-    });
+    orders_by_symbol.remove_if(predicateOrderId(order_id));
     if (orders_by_symbol.empty()) {
         orders.erase(symbol);
     }
 }
 
 std::ostream &operator<<(std::ostream &os, Order const &order) {
-    os << "order_id: " << order.order_id << " price: " << order.price << " volume: " << order.volume;
+    os << "order_id: " << order.order_id << " price: " << order.price << " volume: " << order.volume << " time: "
+       << order.time;
     return os;
 }
