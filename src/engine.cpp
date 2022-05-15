@@ -30,10 +30,10 @@ void CLOBEngine::visitInsert(Insert const &insert) {
 
     switch (insert.side) {
         case Side::BUY:
-            matchBuy(insert.symbol, order);
+            matchImpl(buys, sells, insert.symbol, order, true);
             break;
         case Side::SELL:
-            matchSell(insert.symbol, order);
+            matchImpl(sells, buys, insert.symbol, order, false);
             break;
     }
 }
@@ -208,9 +208,9 @@ void CLOBEngine::amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend 
     remove(queues, symbol, it);
 
     if (is_buy) {
-        matchBuy(symbol, order);
+        matchImpl(buys, sells, symbol, order, is_buy);
     } else {
-        matchSell(symbol, order);
+        matchImpl(sells, buys, symbol, order, is_buy);
     }
 
 }

@@ -74,14 +74,5 @@ private:
             Queues<ComparePassive> &passive_queues,
             Symbol symbol, Order &aggressive_order, bool is_buy
     );
-
-    void matchSell(Symbol symbol, Order &sell) {
-        matchImpl(sells, buys, std::move(symbol), sell, false);
-    }
-
-    void matchBuy(Symbol symbol, Order &buy) {
-        matchImpl(buys, sells, std::move(symbol), buy, true);
-    }
-
 };
 
