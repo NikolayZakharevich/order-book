@@ -135,9 +135,9 @@ void CLOBEngine::matchImpl(
         Queue<ComparePassive> &passive_orders = it_passive_orders->second;
 
         Order best_passive_order = passive_orders.top();
-        bool is_not_match = (is_buy && aggressive_order.price < best_passive_order.price) ||
-                            (!is_buy && best_passive_order.price < aggressive_order.price);
-        if (is_not_match) {
+        bool is_match = (is_buy && best_passive_order.price <= aggressive_order.price) ||
+                        (!is_buy && aggressive_order.price <= best_passive_order.price);
+        if (!is_match) {
             push(aggressive_queues, symbol, aggressive_order);
             return;
         }
