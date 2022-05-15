@@ -16,7 +16,9 @@ public:
         elements = std::vector<T>();
     }
 
-    T top();
+    T top() const;
+
+    T &top();
 
     void remove(iterator it);
 
@@ -44,8 +46,13 @@ private:
 
 
 template<typename T, class Compare>
-T priority_queue<T, Compare>::top() {
+T &priority_queue<T, Compare>::top() {
     return *elements.begin();
+}
+
+template<typename T, class Compare>
+T priority_queue<T, Compare>::top() const {
+    return top();
 }
 
 

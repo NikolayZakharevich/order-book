@@ -22,6 +22,12 @@ struct Order {
     }
 };
 
+template<typename Compare>
+using Queue = priority_queue<Order, Compare>;
+
+template<typename Compare>
+using Queues = std::unordered_map<std::string, Queue<Compare>>;
+
 struct BuysComparator {
     bool operator()(Order const &lhs, Order const &rhs) const {
         return lhs.price != rhs.price ? lhs.price > rhs.price : lhs.time < rhs.time;
@@ -38,15 +44,7 @@ struct SellsComparator {
 class CLOBEngine : public CommandVisitor {
 public:
 
-    CLOBEngine() noexcept {
-        buys = std::unordered_map<Symbol, priority_queue<Order, BuysComparator>>();
-        sells = std::unordered_map<Symbol, priority_queue<Order, SellsComparator>>();
-        trades = std::vector<Trade>();
-
-        order_symbols = std::unordered_map<OrderId, Symbol>();
-        order_sides = std::unordered_map<OrderId, Side>();
-        cur_time = 0;
-    }
+    CLOBEngine() noexcept;
 
     void visitInsert(Insert const &insert) override;
 
@@ -60,21 +58,21 @@ public:
 
 private:
     int cur_time;
-    std::unordered_map<Symbol, priority_queue<Order, BuysComparator>> buys;
-    std::unordered_map<Symbol, priority_queue<Order, SellsComparator>> sells;
+    Queues<BuysComparator> buys;
+    Queues<SellsComparator> sells;
     std::vector<Trade> trades;
 
     std::unordered_map<OrderId, Symbol> order_symbols;
     std::unordered_map<OrderId, Side> order_sides;
 
-    template<typename Comp>
-    void amendImpl(priority_queue<Order, Comp> &queue, Symbol symbol, Amend amend, bool is_buy);
+    template<typename Compare>
+    void amendImpl(Queue<Compare> &queue, Symbol symbol, Amend amend, bool is_buy);
 
-    template<typename Comp1, typename Comp2>
+    template<typename CompareAggressive, typename ComparePassive>
     void matchImpl(
-            std::unordered_map<std::string, priority_queue<Order, Comp1>> &aggressive_orders,
-            std::unordered_map<std::string, priority_queue<Order, Comp2>> &passive_orders,
-            Symbol symbol, Order &aggressive_order, bool is_aggressive_order_buy
+            Queues<CompareAggressive> &aggressive_queues,
+            Queues<ComparePassive> &passive_queues,
+            Symbol symbol, Order &aggressive_order, bool is_buy
     );
 
     void matchSell(Symbol symbol, Order &sell) {

@@ -3,87 +3,28 @@
 #include <vector>
 #include <unordered_map>
 
-template<typename Comp>
-void push(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders, Symbol const &symbol,
-          Order const &order);
+template<typename Compare>
+void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order);
 
-template<typename Comp>
-void remove(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders, Symbol const &symbol,
-            OrderId order_id);
+template<typename Compare>
+void remove(Queues<Compare> &orders, Symbol const &symbol, OrderId order_id);
 
 
 Order dummyOrder(OrderId order_id) {
     return {order_id, 0, 0, 0};
 }
 
-template<typename Comp1, typename Comp2>
-void CLOBEngine::matchImpl(
-        std::unordered_map<std::string, priority_queue<Order, Comp1>> &aggressive_orders,
-        std::unordered_map<std::string, priority_queue<Order, Comp2>> &passive_orders,
-        Symbol symbol,
-        Order &aggressive_order,
-        bool is_aggressive_order_buy
-) {
-    while (true) {
 
-        auto it_passive_orders = passive_orders.find(symbol);
-        if (it_passive_orders == passive_orders.end() || it_passive_orders->second.empty()) {
-            push(aggressive_orders, symbol, aggressive_order);
-            return;
-        }
+CLOBEngine::CLOBEngine() noexcept {
+    buys = std::unordered_map<Symbol, Queue<BuysComparator>>();
+    sells = std::unordered_map<Symbol, Queue<SellsComparator>>();
+    trades = std::vector<Trade>();
 
-        Order best_passive_order = it_passive_orders->second.top();
-        bool is_not_match = (is_aggressive_order_buy && aggressive_order.price < best_passive_order.price) ||
-                            (!is_aggressive_order_buy && best_passive_order.price < aggressive_order.price);
-        if (is_not_match) {
-            push(aggressive_orders, symbol, aggressive_order);
-            return;
-        }
-
-        int price = (is_aggressive_order_buy ? aggressive_order : best_passive_order).price;
-        int volume = std::min(best_passive_order.volume, aggressive_order.volume);
-        trades.emplace_back(symbol, price, volume, aggressive_order.order_id, best_passive_order.order_id);
-
-        if (best_passive_order.volume > aggressive_order.volume) {
-            best_passive_order.volume -= aggressive_order.volume;
-            auto it = it_passive_orders->second.find(dummyOrder(best_passive_order.order_id));
-            it_passive_orders->second.remove(it);;
-            it_passive_orders->second.push(best_passive_order);
-            return;
-        } else if (aggressive_order.volume > best_passive_order.volume) {
-            aggressive_order.volume -= best_passive_order.volume;
-            it_passive_orders->second.pop();
-        } else {
-            it_passive_orders->second.pop();
-            return;
-        }
-    }
+    order_symbols = std::unordered_map<OrderId, Symbol>();
+    order_sides = std::unordered_map<OrderId, Side>();
+    cur_time = 0;
 }
 
-
-template<typename Comp>
-void CLOBEngine::amendImpl(priority_queue<Order, Comp> &queue, Symbol symbol, Amend amend, bool is_buy) {
-    auto it = queue.find(dummyOrder(amend.order_id));
-    if (it == queue.end()) {
-        return;
-    }
-    if (it->price == amend.price && it->volume > amend.volume) {
-        Order order = Order(it->order_id, it->price, amend.volume, it->time);
-        queue.remove(it);
-        queue.push(order);
-        return;
-    }
-
-    Order order = Order(amend.order_id, amend.price, amend.volume, ++cur_time);
-    queue.remove(it);
-
-    if (is_buy) {
-        matchBuy(symbol, order);
-    } else {
-        matchSell(symbol, order);
-    }
-
-}
 
 void CLOBEngine::visitInsert(Insert const &insert) {
     Order order = Order(insert.order_id, insert.price, insert.volume, ++cur_time);
@@ -147,7 +88,7 @@ struct Item {
 };
 
 template<typename Compare>
-std::vector<Item> extractItems(priority_queue<Order, Compare> &queue) {
+std::vector<Item> extractItems(Queue<Compare> &queue) {
     std::vector<Item> items = std::vector<Item>();
     if (queue.empty()) {
         return items;
@@ -231,22 +172,90 @@ std::vector<Trade> CLOBEngine::getTrades() {
     return trades;
 }
 
+template<typename CompareAggressive, typename ComparePassive>
+void CLOBEngine::matchImpl(
+        Queues<CompareAggressive> &aggressive_queues,
+        Queues<ComparePassive> &passive_queues,
+        Symbol symbol,
+        Order &aggressive_order,
+        bool is_buy
+) {
+    while (true) {
+
+        auto it_passive_orders = passive_queues.find(symbol);
+        if (it_passive_orders == passive_queues.end() || it_passive_orders->second.empty()) {
+            push(aggressive_queues, symbol, aggressive_order);
+            return;
+        }
+        Queue<ComparePassive> &passive_orders = it_passive_orders->second;
+
+        Order best_passive_order = passive_orders.top();
+        bool is_not_match = (is_buy && aggressive_order.price < best_passive_order.price) ||
+                            (!is_buy && best_passive_order.price < aggressive_order.price);
+        if (is_not_match) {
+            push(aggressive_queues, symbol, aggressive_order);
+            return;
+        }
+
+        int price = (is_buy ? aggressive_order : best_passive_order).price;
+        int volume = std::min(best_passive_order.volume, aggressive_order.volume);
+        trades.emplace_back(symbol, price, volume, aggressive_order.order_id, best_passive_order.order_id);
+
+        if (best_passive_order.volume > aggressive_order.volume) {
+            best_passive_order.volume -= aggressive_order.volume;
+            auto it = passive_orders.find(dummyOrder(best_passive_order.order_id));
+            passive_orders.remove(it);;
+            passive_orders.push(best_passive_order);
+            return;
+        } else if (aggressive_order.volume > best_passive_order.volume) {
+            aggressive_order.volume -= best_passive_order.volume;
+            passive_orders.pop();
+        } else {
+            passive_orders.pop();
+            return;
+        }
+    }
+}
+
+
 template<typename Compare>
-void push(std::unordered_map<std::string, priority_queue<Order, Compare>> &orders, Symbol const &symbol,
-          Order const &order) {
-    auto it = orders.find(symbol);
-    if (it == orders.end()) {
-        auto queue = priority_queue<Order, Compare>();
+void CLOBEngine::amendImpl(Queue<Compare> &queue, Symbol symbol, Amend amend, bool is_buy) {
+    auto it = queue.find(dummyOrder(amend.order_id));
+    if (it == queue.end()) {
+        return;
+    }
+    if (it->price == amend.price && it->volume > amend.volume) {
+        Order order = Order(it->order_id, it->price, amend.volume, it->time);
+        queue.remove(it);
         queue.push(order);
-        orders[symbol] = queue;
+        return;
+    }
+
+    Order order = Order(amend.order_id, amend.price, amend.volume, ++cur_time);
+    queue.remove(it);
+
+    if (is_buy) {
+        matchBuy(symbol, order);
+    } else {
+        matchSell(symbol, order);
+    }
+
+}
+
+template<typename Compare>
+void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order) {
+    auto it = queues.find(symbol);
+    if (it == queues.end()) {
+        auto queue = Queue<Compare>();
+        queue.push(order);
+        queues[symbol] = queue;
     } else {
         it->second.push(order);
     }
 }
 
 template<typename Compare>
-void remove(std::unordered_map<std::string, priority_queue<Order, Compare>> &orders, Symbol const &symbol,
-            OrderId order_id) {
+void remove(Queues<Compare> &orders, Symbol const &symbol, OrderId order_id) {
     auto it = orders[symbol].find(dummyOrder(order_id));
     if (it != orders[symbol].end()) {
         orders[symbol].remove(it);
