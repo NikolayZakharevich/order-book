@@ -10,7 +10,7 @@
 
 struct Order {
     OrderId order_id;
-    Price price; // x10000
+    Price price; // shifted price
     Volume volume;
     int64_t time;
 

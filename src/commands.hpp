@@ -37,8 +37,8 @@ struct Command {
 struct Insert : Command {
     OrderId order_id;
     Symbol symbol;
-    Side side; //
-    Price price; // x10000
+    Side side;
+    Price price; // shifted price
     Volume volume;
 
     Insert(OrderId order_id, Symbol symbol, Side side,
@@ -53,7 +53,7 @@ struct Insert : Command {
 
 struct Amend : Command {
     OrderId order_id;
-    Price price; // x10000
+    Price price; // shifted price
     Volume volume;
 
     Amend(OrderId order_id, Price price, Volume volume) : order_id(order_id), price(price), volume(volume) {}

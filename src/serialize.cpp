@@ -47,7 +47,7 @@ std::vector<std::string> toString(std::vector<Trade> trades, std::vector<OrderBo
 
     for (Trade const &trade : trades) {
         std::stringstream stream;
-        stream << trade.symbol << ',' << (double) trade.price / 10000 << ',' << trade.volume << ','
+        stream << trade.symbol << ',' << (double) trade.price / PRICE_SHIFT << ',' << trade.volume << ','
                << trade.aggressive_order_id << ',' << trade.passive_order_id;
         result.push_back(stream.str());
     }
@@ -161,7 +161,7 @@ Price parsePrice(std::string_view price_str) {
             fractional_part_cnt++;
         }
     }
-    while (fractional_part_cnt < 4) {
+    while (fractional_part_cnt < PRICE_SHIFT_PLACES) {
         fractional_part_cnt++;
         result *= 10;
     }
@@ -171,7 +171,7 @@ Price parsePrice(std::string_view price_str) {
 std::string toStringItem(std::optional<OrderBook::Item> bid_opt, std::optional<OrderBook::Item> ask_opt) {
     std::stringstream stream;
     if (bid_opt.has_value()) {
-        stream << (double) bid_opt.value().price / 10000;
+        stream << (double) bid_opt.value().price / PRICE_SHIFT;
         stream << ',';
         stream << bid_opt.value().volume;
         stream << ',';
@@ -179,7 +179,7 @@ std::string toStringItem(std::optional<OrderBook::Item> bid_opt, std::optional<O
         stream << ",,";
     }
     if (ask_opt.has_value()) {
-        stream << (double) ask_opt.value().price / 10000;
+        stream << (double) ask_opt.value().price / PRICE_SHIFT;
         stream << ',';
         stream << ask_opt.value().volume;
     } else {
