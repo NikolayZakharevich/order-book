@@ -3,14 +3,22 @@
 #include <vector>
 #include <unordered_map>
 
+// push wrapper
+
 template<typename Compare>
 void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order);
+
+// remove wrappers
 
 template<typename Compare>
 void remove(Queues<Compare> &queues, Symbol const &symbol, OrderId order_id);
 
 template<typename Compare>
 void remove(Queues<Compare> &queues, Symbol const &symbol, std::vector<Order>::iterator it_order);
+
+template<typename Compare>
+void remove(Queues<Compare> &queues, typename Queues<Compare>::iterator it_queue,
+            std::vector<Order>::iterator it_order);
 
 CLOBEngine::CLOBEngine() noexcept {
     buys = std::unordered_map<Symbol, Queue<BuysComparator>>();
@@ -23,7 +31,7 @@ CLOBEngine::CLOBEngine() noexcept {
 
 void CLOBEngine::visitInsert(Insert const &insert) {
     Order order(insert.order_id, insert.price, insert.volume, ++cur_time);
-    order_infos[order.order_id] = OrderInfo(insert.symbol, insert.side);
+    order_infos.insert({order.order_id, OrderInfo(insert.symbol, insert.side)});
     switch (insert.side) {
         case Side::BUY:
             matchImpl(buys, sells, insert.symbol, order, true);
@@ -164,7 +172,7 @@ void CLOBEngine::matchImpl(
         if (best_passive_order.volume > aggressive_order.volume) {
             best_passive_order.volume -= aggressive_order.volume;
             auto it = passive_orders.find(best_passive_order.order_id);
-            remove(passive_queues, symbol, it);
+            remove(passive_queues, it_passive_orders, it);
             push(passive_queues, symbol, best_passive_order);
             return;
         } else if (aggressive_order.volume > best_passive_order.volume) {
@@ -180,7 +188,11 @@ void CLOBEngine::matchImpl(
 
 template<typename Compare>
 void CLOBEngine::amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend amend, bool is_buy) {
-    Queue<Compare> &queue = queues[symbol];
+    auto it_queue = queues.find(symbol);
+    if (it_queue == queues.end()) {
+        return;
+    }
+    Queue<Compare> &queue = it_queue->second;
     auto it = queue.find(amend.order_id);
     if (it == queue.end()) {
         return;
@@ -213,18 +225,38 @@ void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order) {
     }
 }
 
+// remove wrappers implementation
+
 template<typename Compare>
 void remove(Queues<Compare> &queues, Symbol const &symbol, OrderId order_id) {
-    auto it_order = queues[symbol].find(order_id);
-    if (it_order != queues[symbol].end()) {
-        remove(queues, symbol, it_order);
+    auto it_queue = queues.find(symbol);
+    if (it_queue == queues.end()) {
+        // mustn't happen
+        return;
+    }
+    auto it_order = it_queue->second.find(order_id);
+    if (it_order != it_queue->second.end()) {
+        remove(queues, it_queue, it_order);
     }
 }
 
 template<typename Compare>
 void remove(Queues<Compare> &queues, Symbol const &symbol, std::vector<Order>::iterator it_order) {
-    queues[symbol].remove(it_order);
-    if (queues[symbol].empty()) {
-        queues.erase(symbol);
+    auto it_queue = queues.find(symbol);
+    if (it_queue == queues.end()) {
+        // mustn't happen
+        return;
+    }
+    remove(queues, it_queue, it_order);
+}
+
+template<typename Compare>
+void remove(Queues<Compare> &queues, typename Queues<Compare>::iterator it_queue,
+            std::vector<Order>::iterator it_order) {
+    // remove order from queue
+    it_queue->second.remove(it_order);
+    // if no orders left in this queue, remove it
+    if (it_queue->second.empty()) {
+        queues.erase(it_queue);
     }
 }

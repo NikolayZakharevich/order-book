@@ -22,8 +22,6 @@ struct OrderInfo {
     Symbol symbol;
     Side side;
 
-    OrderInfo() = default;
-
     OrderInfo(Symbol symbol, Side side) : symbol(std::move(symbol)), side(side) {}
 };
 

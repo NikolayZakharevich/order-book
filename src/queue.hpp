@@ -16,8 +16,6 @@ public:
     typedef typename std::vector<Value>::iterator iterator;
     typedef typename std::vector<Value>::const_iterator const_iterator;
 
-    priority_queue() = default;
-
     /**
      * @param value_to_key - mapping from values to keys
      */
