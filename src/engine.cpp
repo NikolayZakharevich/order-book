@@ -20,6 +20,13 @@ template<typename Compare>
 void remove(Queues<Compare> &queues, typename Queues<Compare>::iterator it_queue,
             std::vector<Order>::iterator it_order);
 
+// order books helper
+
+template<typename Compare>
+std::vector<OrderBook::Item> extractItems(Queue<Compare> queue);
+
+// implementation
+
 CLOBEngine::CLOBEngine() noexcept {
     buys = std::unordered_map<Symbol, Queue<BuysComparator>>();
     sells = std::unordered_map<Symbol, Queue<SellsComparator>>();
@@ -73,32 +80,6 @@ void CLOBEngine::visitPull(Pull const &pull) {
             remove(sells, symbol, pull.order_id);
             break;
     }
-}
-
-
-template<typename Compare>
-std::vector<OrderBook::Item> extractItems(Queue<Compare> queue) {
-    std::vector<OrderBook::Item> items = std::vector<OrderBook::Item>();
-    if (queue.empty()) {
-        return items;
-    }
-    Order order = queue.top();
-    queue.pop();
-    Price cur_price = order.price;
-    Volume cur_volume = order.volume;
-    while (!queue.empty()) {
-        order = queue.top();
-        queue.pop();
-        if (order.price == cur_price) {
-            cur_volume += order.volume;
-        } else {
-            items.emplace_back(cur_price, cur_volume);
-            cur_price = order.price;
-            cur_volume = order.volume;
-        }
-    }
-    items.emplace_back(cur_price, cur_volume);
-    return items;
 }
 
 std::vector<OrderBook> CLOBEngine::getOrderBooks() {
@@ -259,4 +240,29 @@ void remove(Queues<Compare> &queues, typename Queues<Compare>::iterator it_queue
     if (it_queue->second.empty()) {
         queues.erase(it_queue);
     }
+}
+
+template<typename Compare>
+std::vector<OrderBook::Item> extractItems(Queue<Compare> queue) {
+    std::vector<OrderBook::Item> items = std::vector<OrderBook::Item>();
+    if (queue.empty()) {
+        return items;
+    }
+    Order order = queue.top();
+    queue.pop();
+    Price cur_price = order.price;
+    Volume cur_volume = order.volume;
+    while (!queue.empty()) {
+        order = queue.top();
+        queue.pop();
+        if (order.price == cur_price) {
+            cur_volume += order.volume;
+        } else {
+            items.emplace_back(cur_price, cur_volume);
+            cur_price = order.price;
+            cur_volume = order.volume;
+        }
+    }
+    items.emplace_back(cur_price, cur_volume);
+    return items;
 }
