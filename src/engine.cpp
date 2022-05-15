@@ -14,23 +14,6 @@ void remove(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders
             OrderId order_id);
 
 
-template<typename Comp>
-void printQueue(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders) {
-    auto ordersCopy = orders;
-    std::cerr << "\n";
-    for (auto it : ordersCopy) {
-        std::cerr << it.first << " {\n";
-        while (!it.second.empty()) {
-            Order order = it.second.top();
-            it.second.pop();
-            std::cerr << order << "\n";
-        }
-        std::cerr << "}\n";
-    }
-    std::cerr << "\n";
-}
-
-
 std::function<bool(Order)> predicateOrderId(OrderId order_id) {
     return [&order_id](Order const &item) {
         return item.order_id == order_id;
@@ -269,10 +252,4 @@ void remove(std::unordered_map<std::string, priority_queue<Order, Comp>> &orders
     if (orders_by_symbol.empty()) {
         orders.erase(symbol);
     }
-}
-
-std::ostream &operator<<(std::ostream &os, Order const &order) {
-    os << "order_id: " << order.order_id << " price: " << order.price << " volume: " << order.volume << " time: "
-       << order.time;
-    return os;
 }

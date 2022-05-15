@@ -51,9 +51,6 @@ struct Order {
 
     Order(OrderId order_id, int price, int volume, int time) : order_id(order_id), price(price), volume(volume),
                                                                time(time) {}
-
-
-    friend std::ostream &operator<<(std::ostream &os, Order const &order);
 };
 
 struct BuysComparator {

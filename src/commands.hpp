@@ -1,9 +1,7 @@
 #pragma once
 
 #include <vector>
-
-// TODO: remove when remove debug
-#include <iostream>
+#include <string>
 
 typedef int OrderId;
 typedef std::string Symbol;
@@ -29,8 +27,6 @@ struct CommandVisitor {
 struct Command {
     virtual void accept(CommandVisitor *visitor) const = 0;
 
-    virtual void print() const = 0;
-
     virtual ~Command() = default;
 };
 
@@ -50,10 +46,6 @@ struct Insert : Command {
                                     volume(volume) {}
 
     void accept(CommandVisitor *vistitor) const override { vistitor->visitInsert(*this); }
-
-    void print() const override {
-        std::cerr << "insert " << order_id << " " << symbol << " " << side << " " << price << " " << volume << "\n";
-    }
 };
 
 struct Amend : Command {
@@ -64,10 +56,6 @@ struct Amend : Command {
     Amend(OrderId order_id, int price, int volume) : order_id(order_id), price(price), volume(volume) {}
 
     void accept(CommandVisitor *visitor) const override { visitor->visitAmend(*this); }
-
-    void print() const override {
-        std::cerr << "amend " << order_id << " " << price << " " << volume << "\n";
-    }
 };
 
 struct Pull : Command {
@@ -77,9 +65,6 @@ struct Pull : Command {
 
     void accept(CommandVisitor *visitor) const override { visitor->visitPull(*this); }
 
-    void print() const override {
-        std::cerr << "pull " << order_id << "\n";
-    }
 };
 
 
@@ -105,6 +90,7 @@ struct OrderBook {
         int ask_volume;
 
         static OrderBookItem bid(int bid_price, int bid_volume) { return {bid_price, bid_volume, NONE, NONE}; }
+
         static OrderBookItem ask(int ask_price, int ask_volume) { return {NONE, NONE, ask_price, ask_volume}; }
 
         OrderBookItem(int bid_price, int bid_volume,

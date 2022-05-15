@@ -9,7 +9,6 @@ std::vector<std::string> run(std::vector<std::string> const &input) {
 
     std::vector<std::shared_ptr<Command>> commands = parseCommands(input);
     for (auto const &command : commands) {
-        command->print();
         command->accept(&engine);
     }
 
