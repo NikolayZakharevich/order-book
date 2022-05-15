@@ -1,3 +1,5 @@
+#include <utility>
+
 #pragma once
 
 #include "commands.hpp"
@@ -95,11 +97,11 @@ private:
     );
 
     void matchSell(Symbol symbol, Order &sell) {
-        match(sells, buys, symbol, sell, false);
+        match(sells, buys, std::move(symbol), sell, false);
     }
 
     void matchBuy(Symbol symbol, Order &buy) {
-        match(buys, sells, symbol, buy, true);
+        match(buys, sells, std::move(symbol), buy, true);
     }
 
 };

@@ -56,7 +56,6 @@ void CLOBEngine::match(
         }
 
         int price = (is_aggressive_order_buy ? aggressive_order : best_passive_order).price;
-
         int volume = std::min(best_passive_order.volume, aggressive_order.volume);
         trades.emplace_back(symbol, price, volume, aggressive_order.order_id, best_passive_order.order_id);
 
@@ -130,54 +129,35 @@ void CLOBEngine::visitPull(Pull const &pull) {
 
 }
 
+struct Item {
+    int price;
+    int volume;
+
+    Item(int price, int volume) : price(price), volume(volume) {}
+};
 
 template<typename Comp>
-std::vector<OrderBook::OrderBookItem> extractBuyItems(priority_queue<Order, Comp> &buys) {
-    std::vector<OrderBook::OrderBookItem> items = std::vector<OrderBook::OrderBookItem>();
-    while (!buys.empty()) {
-        Order const buy = buys.top();
-        buys.pop();
-        OrderBook::OrderBookItem item = OrderBook::OrderBookItem();
-        item.bid_price = buy.price;
-        item.bid_volume = buy.volume;
-        items.push_back(item);
+std::vector<Item> extractItems(priority_queue<Order, Comp> &queue) {
+    std::vector<Item> items = std::vector<Item>();
+    if (queue.empty()) {
+        return items;
     }
-    return items;
-}
-
-template<typename Comp>
-std::vector<OrderBook::OrderBookItem> extractSellItems(priority_queue<Order, Comp> &sells) {
-    std::vector<OrderBook::OrderBookItem> items = std::vector<OrderBook::OrderBookItem>();
-    while (!sells.empty()) {
-        Order const sell = sells.top();
-        sells.pop();
-        OrderBook::OrderBookItem item = OrderBook::OrderBookItem();
-        item.ask_price = sell.price;
-        item.ask_volume = sell.volume;
-        items.push_back(item);
+    Order order = queue.top();
+    queue.pop();
+    int cur_price = order.price;
+    int cur_volume = order.volume;
+    while (!queue.empty()) {
+        order = queue.top();
+        queue.pop();
+        if (order.price == cur_price) {
+            cur_volume += order.volume;
+        } else {
+            items.emplace_back(cur_price, cur_volume);
+            cur_price = order.price;
+            cur_volume = order.volume;
+        }
     }
-    return items;
-}
-
-template<typename Comp1, typename Comp2>
-std::vector<OrderBook::OrderBookItem> extractItems(
-        priority_queue<Order, Comp1> &buys,
-        priority_queue<Order, Comp2> &sells
-) {
-    std::vector<OrderBook::OrderBookItem> items = std::vector<OrderBook::OrderBookItem>();
-    while (!buys.empty() && !sells.empty()) {
-        Order const buy = buys.top();
-        Order const sell = sells.top();
-        buys.pop();
-        sells.pop();
-
-        OrderBook::OrderBookItem item = OrderBook::OrderBookItem();
-        item.bid_price = buy.price;
-        item.bid_volume = buy.volume;
-        item.ask_price = sell.price;
-        item.ask_volume = sell.volume;
-        items.push_back(item);
-    }
+    items.emplace_back(cur_price, cur_volume);
     return items;
 }
 
@@ -185,13 +165,13 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
     std::vector<Symbol> symbols = std::vector<Symbol>();
     symbols.reserve(buys.size() + sells.size());
 
-    auto buysCopy = buys;
-    auto sellsCopy = sells;
+    auto buys_copy = buys;
+    auto sells_copy = sells;
 
-    for (auto const &it : buysCopy) {
+    for (auto const &it : buys_copy) {
         symbols.push_back(it.first);
     }
-    for (auto const &r : sellsCopy) {
+    for (auto const &r : sells_copy) {
         symbols.push_back(r.first);
     }
 
@@ -200,23 +180,36 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
 
     std::vector<OrderBook> info = std::vector<OrderBook>();
     for (Symbol const &symbol : symbols) {
-        auto it_buys = buysCopy.find(symbol);
-        auto it_sells = sellsCopy.find(symbol);
+        auto it_buys = buys_copy.find(symbol);
+        auto it_sells = sells_copy.find(symbol);
+
+        std::vector<Item> items_bids, items_asks;
+        if (it_buys != buys_copy.end()) {
+            items_bids = extractItems(it_buys->second);
+        } else {
+            items_bids = std::vector<Item>();
+        }
+        if (it_sells != sells_copy.end()) {
+            items_asks = extractItems(it_sells->second);
+        } else {
+            items_asks = std::vector<Item>();
+        }
 
         std::vector<OrderBook::OrderBookItem> items = std::vector<OrderBook::OrderBookItem>();
-        if (it_buys == buysCopy.end()) {
-            auto items_sells = extractSellItems(it_sells->second);
-            items.insert(items.end(), items_sells.begin(), items_sells.end());
-        } else if (it_sells == sellsCopy.end()) {
-            auto items_buys = extractBuyItems(it_buys->second);
-            items.insert(items.end(), items_buys.begin(), items_buys.end());
-        } else {
-            auto items_both = extractItems(it_buys->second, it_sells->second);
-            auto items_sells = extractSellItems(it_sells->second);
-            auto items_buys = extractBuyItems(it_buys->second);
-            items.insert(items.end(), items_both.begin(), items_both.end());
-            items.insert(items.end(), items_sells.begin(), items_sells.end());
-            items.insert(items.end(), items_buys.begin(), items_buys.end());
+        auto it_items_bids = items_bids.begin();
+        auto it_items_asks = items_asks.begin();
+        while (it_items_bids != items_bids.end() && it_items_asks != items_asks.end()) {
+            auto bid = *it_items_bids++;
+            auto ask = *it_items_asks++;
+            items.emplace_back(bid.price, bid.volume, ask.price, ask.volume);
+        }
+        while (it_items_bids != items_bids.end()) {
+            auto bid = *it_items_bids++;
+            items.push_back(OrderBook::OrderBookItem::bid(bid.price, bid.volume));
+        }
+        while (it_items_asks != items_asks.end()) {
+            auto ask = *it_items_asks++;
+            items.push_back(OrderBook::OrderBookItem::ask(ask.price, ask.volume));
         }
 
         info.emplace_back(symbol, items);

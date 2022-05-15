@@ -99,10 +99,19 @@ struct OrderBook {
 
     struct OrderBookItem {
         int static const NONE = -1;
-        int bid_price = NONE;
-        int bid_volume = NONE;
-        int ask_price = NONE;
-        int ask_volume = NONE;
+        int bid_price;
+        int bid_volume;
+        int ask_price;
+        int ask_volume;
+
+        static OrderBookItem bid(int bid_price, int bid_volume) { return {bid_price, bid_volume, NONE, NONE}; }
+        static OrderBookItem ask(int ask_price, int ask_volume) { return {NONE, NONE, ask_price, ask_volume}; }
+
+        OrderBookItem(int bid_price, int bid_volume,
+                      int ask_price, int ask_volume) : bid_price(bid_price),
+                                                       bid_volume(bid_volume),
+                                                       ask_price(ask_price),
+                                                       ask_volume(ask_volume) {}
     };
 
     Symbol symbol;
