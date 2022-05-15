@@ -17,16 +17,14 @@ CLOBEngine::CLOBEngine() noexcept {
     sells = std::unordered_map<Symbol, Queue<SellsComparator>>();
     trades = std::vector<Trade>();
 
-    order_symbols = std::unordered_map<OrderId, Symbol>();
-    order_sides = std::unordered_map<OrderId, Side>();
+    order_infos = std::unordered_map<OrderId, OrderInfo>();
     cur_time = 0;
 }
 
 
 void CLOBEngine::visitInsert(Insert const &insert) {
-    Order order = Order(insert.order_id, insert.price, insert.volume, ++cur_time);
-    order_symbols[order.order_id] = insert.symbol;
-    order_sides[order.order_id] = insert.side;
+    Order order(insert.order_id, insert.price, insert.volume, ++cur_time);
+    order_infos[order.order_id] = OrderInfo(insert.symbol, insert.side);
 
     switch (insert.side) {
         case Side::BUY:
@@ -39,15 +37,13 @@ void CLOBEngine::visitInsert(Insert const &insert) {
 }
 
 void CLOBEngine::visitAmend(Amend const &amend) {
-    auto it_symbol = order_symbols.find(amend.order_id);
-    if (it_symbol == order_symbols.end()) {
+    auto it_info = order_infos.find(amend.order_id);
+    if (it_info == order_infos.end()) {
         return;
     }
 
-    Symbol symbol = it_symbol->second;
-    Side side = order_sides[amend.order_id];
-
-    switch (side) {
+    Symbol symbol = it_info->second.symbol;
+    switch (it_info->second.side) {
         case Side::BUY:
             amendImpl(buys, symbol, amend, true);
             break;
@@ -59,14 +55,12 @@ void CLOBEngine::visitAmend(Amend const &amend) {
 }
 
 void CLOBEngine::visitPull(Pull const &pull) {
-    auto it = order_symbols.find(pull.order_id);
-    if (it == order_symbols.end()) {
+    auto it_info = order_infos.find(pull.order_id);
+    if (it_info == order_infos.end()) {
         return;
     }
-    Symbol symbol = it->second;
-    Side side = order_sides[pull.order_id];
-
-    switch (side) {
+    Symbol symbol = it_info->second.symbol;
+    switch (it_info->second.side) {
         case Side::BUY:
             remove(buys, symbol, pull.order_id);
             break;
@@ -74,7 +68,6 @@ void CLOBEngine::visitPull(Pull const &pull) {
             remove(sells, symbol, pull.order_id);
             break;
     }
-
 }
 
 
@@ -104,7 +97,7 @@ std::vector<OrderBook::Item> extractItems(Queue<Compare> &queue) {
 }
 
 std::vector<OrderBook> CLOBEngine::getOrderBooks() {
-    std::vector<Symbol> symbols = std::vector<Symbol>();
+    std::vector<Symbol> symbols;
     symbols.reserve(buys.size() + sells.size());
 
     auto buys_copy = buys;

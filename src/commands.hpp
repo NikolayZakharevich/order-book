@@ -1,9 +1,8 @@
-#include <utility>
-
 #pragma once
 
 #include <vector>
 #include <string>
+#include <utility>
 
 typedef int OrderId;
 typedef std::string Symbol;

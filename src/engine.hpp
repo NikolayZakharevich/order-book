@@ -22,6 +22,14 @@ struct Order {
     }
 };
 
+struct OrderInfo {
+    Symbol symbol;
+    Side side;
+
+    OrderInfo() {};
+    OrderInfo(Symbol symbol, Side side) : symbol(std::move(symbol)), side(side) {}
+};
+
 template<typename Compare>
 using Queue = priority_queue<OrderId, Order, Compare>;
 
@@ -62,8 +70,7 @@ private:
     Queues<SellsComparator> sells;
     std::vector<Trade> trades;
 
-    std::unordered_map<OrderId, Symbol> order_symbols;
-    std::unordered_map<OrderId, Side> order_sides;
+    std::unordered_map<OrderId, OrderInfo> order_infos;
 
     template<typename Compare>
     void amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend amend, bool is_buy);
