@@ -13,6 +13,8 @@ std::shared_ptr<Amend> parseAmend(const std::vector<std::string> &amend_parts);
 
 std::shared_ptr<Pull> parsePull(const std::vector<std::string> &pull_parts);
 
+int parsePrice(const std::string &price_str);
+
 /**
  * Every command starts with either "INSERT", "AMEND" or "PULL" with additional
  * data in the columns after the command.
@@ -38,31 +40,39 @@ std::vector<std::shared_ptr<Command>> parseCommands(std::vector<std::string> con
     return result;
 }
 
-std::vector<std::string> toString(std::vector<OrderBook> order_books) {
-
+std::vector<std::string> toString(std::vector<Trade> trades, std::vector<OrderBook> order_books) {
     std::vector<std::string> result = std::vector<std::string>();
+
+    for (Trade const &trade : trades) {
+        std::stringstream stream;
+        stream << trade.symbol << ',' << (double) trade.price / 10000 << ',' << trade.volume << ','
+               << trade.aggressive_order_id << ',' << trade.passive_order_id;
+        result.push_back(stream.str());
+    }
+
     for (OrderBook const &order_book : order_books) {
         result.push_back("===" + order_book.symbol + "===");
         for (OrderBook::OrderBookItem const &info_item : order_book.rows) {
-            std::stringstream stringstream;
+            std::stringstream stream;
             if (info_item.bid_price != OrderBook::OrderBookItem::NONE) {
-                stringstream << (double) info_item.bid_price / 10000;
+                stream << (double) info_item.bid_price / 10000;
             }
-            stringstream << ',';
+            stream << ',';
             if (info_item.bid_volume != OrderBook::OrderBookItem::NONE) {
-                stringstream << info_item.bid_volume;
+                stream << info_item.bid_volume;
             }
-            stringstream << ',';
+            stream << ',';
             if (info_item.ask_price != OrderBook::OrderBookItem::NONE) {
-                stringstream << (double) info_item.ask_price / 10000;
+                stream << (double) info_item.ask_price / 10000;
             }
-            stringstream << ',';
+            stream << ',';
             if (info_item.ask_volume != OrderBook::OrderBookItem::NONE) {
-                stringstream << info_item.ask_volume;
+                stream << info_item.ask_volume;
             }
-            result.push_back(stringstream.str());
+            result.push_back(stream.str());
         }
     }
+
     return result;
 }
 
@@ -86,7 +96,7 @@ std::shared_ptr<Insert> parseInsert(const std::vector<std::string> &insert_parts
     } else {
         throw std::runtime_error("invalid insert");
     }
-    int price = (int) (std::stod(insert_parts[4]) * 10000);
+    int price = parsePrice(insert_parts[4]);
     int volume = std::stoi(insert_parts[5]);
     return std::make_shared<Insert>(order_id, symbol, side, price, volume);
 }
@@ -101,7 +111,7 @@ std::shared_ptr<Amend> parseAmend(const std::vector<std::string> &amend_parts) {
         throw std::runtime_error("invalid amend");
     }
     OrderId order_id = std::stoi(amend_parts[1]);
-    int price = (int) (std::stod(amend_parts[2]) * 10000);
+    int price = parsePrice(amend_parts[2]);
     int volume = std::stoi(amend_parts[3]);
     return std::make_shared<Amend>(order_id, price, volume);
 }
@@ -126,6 +136,34 @@ std::vector<std::string> splitByChar(const std::string &string, char c) {
     std::string segment;
     while (std::getline(stream, segment, c)) {
         result.push_back(segment);
+    }
+    return result;
+}
+
+int parsePrice(const std::string &price_str) {
+    if (price_str.empty()) {
+        return 0;
+    }
+    bool is_fractional_part = false;
+    int fractional_part_cnt = 0;
+
+    auto it = price_str.begin();
+    int result = (*it++) - '0';
+    while (it != price_str.end()) {
+        if (*it == '.') {
+            ++it;
+            is_fractional_part = true;
+            continue;
+        }
+        result *= 10;
+        result += (*it++) - '0';
+        if (is_fractional_part) {
+            fractional_part_cnt++;
+        }
+    }
+    while (fractional_part_cnt < 4) {
+        fractional_part_cnt++;
+        result *= 10;
     }
     return result;
 }

@@ -11,5 +11,5 @@ std::vector<std::string> run(std::vector<std::string> const &input) {
     for (auto const &command : parseCommands(input)) {
         command->accept(&engine);
     }
-    return toString(engine.getOrderBooks());
+    return toString(engine.getTrades(), engine.getOrderBooks());
 }

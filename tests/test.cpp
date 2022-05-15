@@ -5,16 +5,15 @@
 #include "../src/serialize.hpp"
 
 std::vector<std::string> run(std::vector<std::string> const &input) {
-    CLOBEngine order_book = CLOBEngine();
+    CLOBEngine engine = CLOBEngine();
 
     std::vector<std::shared_ptr<Command>> commands = parseCommands(input);
     for (auto const &command : commands) {
-        std::cerr << "command\n";
         command->print();
-        command->accept(&order_book);
+        command->accept(&engine);
     }
 
-    std::vector<std::string> result = toString(order_book.getOrderBooks());
+    std::vector<std::string> result = toString(engine.getTrades(), engine.getOrderBooks());
     for (const auto &row : result) {
         std::cerr << row << "\n";
     }

@@ -5,4 +5,4 @@
 
 std::vector<std::shared_ptr<Command>> parseCommands(std::vector<std::string> const &input);
 
-std::vector<std::string> toString(std::vector<OrderBook> order_books);
+std::vector<std::string> toString(std::vector<Trade> trades, std::vector<OrderBook> order_books);

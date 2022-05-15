@@ -86,9 +86,13 @@ struct Pull : Command {
 struct Trade {
     Symbol symbol;
     int price; // x10000
-    std::string volume;
+    int volume;
     OrderId aggressive_order_id;
     OrderId passive_order_id;
+
+    Trade(Symbol symbol, int price, int volume, OrderId aggressive_order_id,
+          OrderId passive_order_id) : symbol(std::move(symbol)), price(price), volume(volume),
+                                      aggressive_order_id(aggressive_order_id), passive_order_id(passive_order_id) {}
 };
 
 struct OrderBook {
