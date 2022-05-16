@@ -27,7 +27,7 @@ std::vector<OrderBook::Item> extractItems(Queue<Compare> queue);
 
 // implementation
 
-CLOBEngine::CLOBEngine() noexcept {
+CLOBEngine::CLOBEngine() {
     buys = std::unordered_map<Symbol, Queue<BuysComparator>>();
     sells = std::unordered_map<Symbol, Queue<SellsComparator>>();
     trades = std::vector<Trade>();

@@ -1,12 +1,11 @@
 #pragma once
 
-#include "commands.hpp"
+#include "common.hpp"
 #include "queue.hpp"
 
 #include <utility>
 #include <unordered_map>
 #include <vector>
-
 
 struct Order {
     OrderId order_id;
@@ -43,20 +42,37 @@ struct SellsComparator {
     }
 };
 
-
+/**
+ *  Central limit order book (CLOB) for managing orders
+ */
 class CLOBEngine : public CommandVisitor {
 public:
 
-    CLOBEngine() noexcept;
+    CLOBEngine();
 
+    /**
+     * Inserts order to the order book
+     */
     void visitInsert(Insert const &insert) override;
 
+    /**
+     * Changes the price and/or volume of the order
+     */
     void visitAmend(Amend const &amend) override;
 
+    /**
+     * Removes the order from the order book.
+     */
     void visitPull(Pull const &pull) override;
 
+    /**
+     * Returns all trades
+     */
     std::vector<Trade> getTrades();
 
+    /**
+     * Returns current order books
+     */
     std::vector<OrderBook> getOrderBooks();
 
 private:
