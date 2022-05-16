@@ -183,6 +183,10 @@ void CLOBEngine::insertImpl(
             passive_queue.pop();
         }
     }
+    // cleanup
+    if (passive_queue.empty()) {
+        passive_queues.erase(it_passive_queue);
+    }
 }
 
 
