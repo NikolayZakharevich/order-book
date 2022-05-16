@@ -175,6 +175,43 @@ void test_many_trades() {
     assert(result[count + 1] == ",,45.95,1");
 }
 
+void test_bad_queries() {
+    std::cout << "bad queries" << std::endl;
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,WEBB,BUY,10,5");
+    input.emplace_back("INSERT,2,WEBB,SELL,20,6");
+    input.emplace_back("AMEND,3,30,6");
+    input.emplace_back("PULL,4");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 2);
+    assert(result[0] == "===WEBB===");
+    assert(result[1] == "10,5,20,6");
+}
+
+
+void test_alphabetical_order() {
+    std::cout << "alphabetical order" << std::endl;
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,C,BUY,10,5");
+    input.emplace_back("INSERT,2,A,BUY,10,5");
+    input.emplace_back("INSERT,3,B,BUY,10,5");
+    input.emplace_back("INSERT,4,E,BUY,10,5");
+    input.emplace_back("INSERT,5,D,BUY,10,5");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 10);
+    assert(result[0] == "===A===");
+    assert(result[1] == "10,5,,");
+    assert(result[2] == "===B===");
+    assert(result[3] == "10,5,,");
+    assert(result[4] == "===C===");
+    assert(result[5] == "10,5,,");
+    assert(result[6] == "===D===");
+    assert(result[7] == "10,5,,");
+    assert(result[8] == "===E===");
+    assert(result[9] == "10,5,,");
+}
 
 int main() {
     test_insert();
@@ -183,6 +220,8 @@ int main() {
     test_multi_symbol();
     test_amend();
     test_pull();
+    test_bad_queries();
+    test_alphabetical_order();
     test_many_trades();
     std::cout << "OK" << std::endl;
     return 0;

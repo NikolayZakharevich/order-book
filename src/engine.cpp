@@ -56,10 +56,10 @@ void CLOBEngine::visitInsert(Insert const &insert) {
     order_infos.insert({order.order_id, OrderInfo(insert.symbol, insert.side)});
     switch (insert.side) {
         case Side::BUY:
-            matchImpl(buys, sells, insert.symbol, order, true);
+            insertImpl(buys, sells, insert.symbol, order, true);
             break;
         case Side::SELL:
-            matchImpl(sells, buys, insert.symbol, order, false);
+            insertImpl(sells, buys, insert.symbol, order, false);
             break;
     }
 }
@@ -136,7 +136,7 @@ std::vector<Trade> CLOBEngine::getTrades() {
 /* CLOBEngine implementation details */
 
 template<typename CompareAggressive, typename ComparePassive>
-void CLOBEngine::matchImpl(
+void CLOBEngine::insertImpl(
         Queues<CompareAggressive> &aggressive_queues,
         Queues<ComparePassive> &passive_queues,
         Symbol symbol,
@@ -187,24 +187,28 @@ template<typename Compare>
 void CLOBEngine::amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend amend, bool is_buy) {
     auto it_queue = queues.find(symbol);
     if (it_queue == queues.end()) {
+        // mustn't happen
         return;
     }
     auto it_order = it_queue->second.find(amend.order_id);
     if (it_order == it_queue->second.end()) {
+        // unknown order_id passed
         return;
     }
+
+    // order doesn't lose time priority if the only change is the volume decrease
     if (it_order->price == amend.price && it_order->volume > amend.volume) {
         *it_order = Order(it_order->order_id, it_order->price, amend.volume, it_order->time);
         return;
     }
 
-    Order order = Order(amend.order_id, amend.price, amend.volume, ++cur_time);
+    // if the are any other changes amend is equal to insert
     remove(queues, symbol, it_order);
-
+    Order order = Order(amend.order_id, amend.price, amend.volume, ++cur_time);
     if (is_buy) {
-        matchImpl(buys, sells, symbol, order, is_buy);
+        insertImpl(buys, sells, symbol, order, is_buy);
     } else {
-        matchImpl(sells, buys, symbol, order, is_buy);
+        insertImpl(sells, buys, symbol, order, is_buy);
     }
 }
 

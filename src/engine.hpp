@@ -83,14 +83,11 @@ private:
 
     std::unordered_map<OrderId, OrderInfo> order_infos;
 
+    template<typename CompareAggressive, typename ComparePassive>
+    void insertImpl(Queues<CompareAggressive> &aggressive_queues, Queues<ComparePassive> &passive_queues,
+                    Symbol symbol, Order &aggressive_order, bool is_buy);
+
     template<typename Compare>
     void amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend amend, bool is_buy);
-
-    template<typename CompareAggressive, typename ComparePassive>
-    void matchImpl(
-            Queues<CompareAggressive> &aggressive_queues,
-            Queues<ComparePassive> &passive_queues,
-            Symbol symbol, Order &aggressive_order, bool is_buy
-    );
 };
 
