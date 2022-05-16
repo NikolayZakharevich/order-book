@@ -6,7 +6,7 @@
 
 /**
  * This queue supports fast operations with values using their keys.
- * Keys can be represented as unique identifiers of values, they are used in search.
+ * Keys can be represented as unique identifiers of values, which are used for searching
  */
 template<typename Key, typename Value, class Compare>
 class priority_queue {
