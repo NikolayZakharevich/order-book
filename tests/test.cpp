@@ -163,7 +163,7 @@ void test_many_trades() {
     for (int buy_id = 1; buy_id <= count; ++buy_id) {
         input.emplace_back("INSERT," + std::to_string(buy_id) + ",WEBB,BUY,45.95,10");
     }
-    input.emplace_back("INSERT," + std::to_string(sell_id) + ",WEBB,SELL,45.95,10000001");
+    input.emplace_back("INSERT," + std::to_string(sell_id) + ",WEBB,SELL,45.95," + std::to_string(count * 10 + 1));
 
 
     std::vector<std::string> result = run(input);
@@ -213,6 +213,196 @@ void test_alphabetical_order() {
     assert(result[9] == "10,5,,");
 }
 
+void test_no_commands() {
+    std::cout << "no commands" << std::endl;
+    std::vector<std::string> input = std::vector<std::string>();
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 0);
+}
+
+void test_insert_2() {
+    std::cout << "insert 2" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,AAPL,BUY,12.2,5");
+    input.emplace_back("INSERT,1,AAPL,BUY,12.2,5");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 2);
+    assert(result[0] == "===AAPL===");
+    assert(result[1] == "12.2,5,,");
+}
+
+void test_insert_pull_insert() {
+    std::cout << "insert pull insert" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,AAPL,BUY,12.2,5");
+    input.emplace_back("PULL,1");
+    input.emplace_back("INSERT,1,AAPL,BUY,12.2,5");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 0);
+}
+
+
+void test_amend_2() {
+    std::cout << "insert pull insert" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,SELL,3,1");
+    input.emplace_back("INSERT,2,A,SELL,3,1");
+    input.emplace_back("INSERT,3,A,SELL,3,1");
+    input.emplace_back("INSERT,4,A,BUY,1,4");
+    input.emplace_back("AMEND,4,3,4");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 5);
+    assert(result[0] == "A,3,1,4,1");
+    assert(result[1] == "A,3,1,4,2");
+    assert(result[2] == "A,3,1,4,3");
+    assert(result[3] == "===A===");
+    assert(result[4] == "3,1,,");
+}
+
+void test_amend_3() {
+    std::cout << "insert pull insert" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,BUY,3,1");
+    input.emplace_back("INSERT,2,A,BUY,3,1");
+    input.emplace_back("INSERT,3,A,BUY,3,1");
+    input.emplace_back("INSERT,4,A,SELL,5,4");
+    input.emplace_back("AMEND,4,3,4");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 5);
+    assert(result[0] == "A,3,1,4,1");
+    assert(result[1] == "A,3,1,4,2");
+    assert(result[2] == "A,3,1,4,3");
+    assert(result[3] == "===A===");
+    assert(result[4] == ",,3,1");
+}
+
+void test_simple_match_2() {
+    std::cout << "simple match 2" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,BUY,3,1");
+    input.emplace_back("INSERT,2,A,SELL,3,1");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 1);
+    assert(result[0] == "A,3,1,2,1");
+}
+
+void test_simple_match_3() {
+    std::cout << "simple match 3" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,BUY,3,1");
+    input.emplace_back("INSERT,2,A,SELL,3,1");
+    input.emplace_back("INSERT,4,B,BUY,3,1");
+    input.emplace_back("INSERT,3,B,SELL,3,1");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 2);
+    assert(result[0] == "A,3,1,2,1");
+    assert(result[1] == "B,3,1,3,4");
+}
+
+void test_insert_3() {
+    std::cout << "insert 3" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,BUY,3,1");
+    input.emplace_back("INSERT,2,A,BUY,3,1");
+    input.emplace_back("INSERT,3,A,BUY,3,1");
+    input.emplace_back("INSERT,4,B,SELL,3,1");
+    input.emplace_back("INSERT,5,B,SELL,3,1");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 4);
+    assert(result[0] == "===A===");
+    assert(result[1] == "3,3,,");
+    assert(result[2] == "===B===");
+    assert(result[3] == ",,3,2");
+}
+
+
+void test_insert_4() {
+    std::cout << "insert 3" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,BUY,3,1");
+    input.emplace_back("INSERT,2,A,BUY,3,1");
+    input.emplace_back("INSERT,3,A,BUY,3,1");
+    input.emplace_back("INSERT,4,A,BUY,4,10");
+    input.emplace_back("INSERT,5,A,BUY,4,10");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 3);
+    assert(result[0] == "===A===");
+    assert(result[1] == "4,20,,");
+    assert(result[2] == "3,3,,");
+}
+
+void test_insert_5() {
+    std::cout << "insert 5" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,BUY,6,1");
+    input.emplace_back("INSERT,2,A,BUY,5,1");
+    input.emplace_back("INSERT,3,A,BUY,4,1");
+    input.emplace_back("INSERT,4,A,BUY,3,1");
+    input.emplace_back("INSERT,5,A,BUY,2,1");
+    input.emplace_back("INSERT,6,A,BUY,1,1");
+    input.emplace_back("INSERT,7,A,SELL,6,1");
+    input.emplace_back("INSERT,8,A,SELL,5,1");
+    input.emplace_back("INSERT,9,A,SELL,4,1");
+    input.emplace_back("INSERT,10,A,SELL,3,1");
+    input.emplace_back("INSERT,11,A,SELL,2,1");
+    input.emplace_back("INSERT,12,A,SELL,1,1");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 6);
+    assert(result[0] == "A,6,1,7,1");
+    assert(result[1] == "A,5,1,8,2");
+    assert(result[2] == "A,4,1,9,3");
+    assert(result[3] == "A,3,1,10,4");
+    assert(result[4] == "A,2,1,11,5");
+    assert(result[5] == "A,1,1,12,6");
+}
+
+void test_insert_6() {
+    std::cout << "insert 6" << std::endl;
+
+    std::vector<std::string> input = std::vector<std::string>();
+    input.emplace_back("INSERT,1,A,BUY,6,1");
+    input.emplace_back("INSERT,2,A,BUY,5,1");
+    input.emplace_back("INSERT,3,A,BUY,4,1");
+    input.emplace_back("INSERT,4,A,BUY,3,1");
+    input.emplace_back("INSERT,5,A,BUY,2,1");
+    input.emplace_back("INSERT,6,A,BUY,1,1");
+    input.emplace_back("INSERT,7,A,SELL,1,1");
+    input.emplace_back("INSERT,8,A,SELL,2,1");
+    input.emplace_back("INSERT,9,A,SELL,3,1");
+    input.emplace_back("INSERT,10,A,SELL,4,1");
+    input.emplace_back("INSERT,11,A,SELL,5,1");
+    input.emplace_back("INSERT,12,A,SELL,6,1");
+
+    std::vector<std::string> result = run(input);
+    assert(result.size() == 7);
+    assert(result[0] == "A,6,1,7,1");
+    assert(result[1] == "A,5,1,8,2");
+    assert(result[2] == "A,4,1,9,3");
+    assert(result[3] == "===A===");
+    assert(result[4] == "3,1,4,1");
+    assert(result[5] == "2,1,5,1");
+    assert(result[6] == "1,1,6,1");
+}
+
+
 int main() {
     test_insert();
     test_simple_match();
@@ -222,6 +412,19 @@ int main() {
     test_pull();
     test_bad_queries();
     test_alphabetical_order();
+    test_no_commands();
+    test_insert_2();
+    test_insert_pull_insert();
+    test_amend_2();
+    test_amend_3();
+    test_simple_match_2();
+    test_simple_match_3();
+    test_simple_match_3();
+    test_insert_3();
+    test_insert_4();
+    test_insert_5();
+    test_insert_6();
+
     test_many_trades();
     std::cout << "OK" << std::endl;
     return 0;
