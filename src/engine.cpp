@@ -45,8 +45,11 @@ CLOBEngine::CLOBEngine() {
 }
 
 void CLOBEngine::visitInsert(Insert const &insert) {
+    if (order_infos.find(insert.order_id) != order_infos.end()) {
+        return; // already inserted
+    }
+    order_infos.emplace(insert.order_id, OrderInfo(insert.symbol, insert.side));
     Order order(insert.order_id, insert.price, insert.volume, ++cur_time);
-    order_infos.insert({order.order_id, OrderInfo(insert.symbol, insert.side)});
     switch (insert.side) {
         case Side::BUY:
             insertImpl(buys, sells, insert.symbol, order, true);
@@ -243,7 +246,6 @@ template<typename Compare>
 void remove(Queues<Compare> &queues, Symbol const &symbol, OrderId order_id) {
     auto it_queue = queues.find(symbol);
     if (it_queue == queues.end()) {
-        // mustn't happen because of client's code checks
         return;
     }
     auto it_order = it_queue->second.find(order_id);
