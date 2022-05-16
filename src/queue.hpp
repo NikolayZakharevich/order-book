@@ -28,23 +28,10 @@ public:
     void push(const Value &value);
 
     /**
-     * Returns the minimum element from the queue
-     * O(1) time complexity
-     */
-    Value top() const;
-
-    /**
      * Returns the minimum element from the queue. Allows to change the element so it can broke the class invariant
      * O(1) time complexity
      */
     Value &top();
-
-    /**
-     * If such element exists in the queue returns the iterator pointing at it.
-     * Otherwise, returns iterator the end of queue {@see end()}
-     * O(1) time complexity
-     */
-    iterator find(Value value);
 
     /**
      * If element with such key exists in the queue returns the iterator pointing at it.
@@ -118,16 +105,6 @@ void priority_queue<Key, Value, Compare>::push(Value const &value) {
 template<typename Key, typename Value, class Compare>
 Value &priority_queue<Key, Value, Compare>::top() {
     return *values.begin();
-}
-
-template<typename Key, typename Value, class Compare>
-Value priority_queue<Key, Value, Compare>::top() const {
-    return top();
-}
-
-template<typename Key, typename Value, class Compare>
-typename priority_queue<Key, Value, Compare>::iterator priority_queue<Key, Value, Compare>::find(Value value) {
-    return find(value_to_key(value));
 }
 
 template<typename Key, typename Value, class Compare>
