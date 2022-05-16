@@ -66,7 +66,7 @@ public:
     void pop();
 
     /**
-     * `true` if there are no elements in queue, `false` otherwise
+     * `true` if there are no elements in the queue, `false` otherwise
      * O(1) time complexity
      */
     bool empty();
