@@ -126,7 +126,8 @@ void CLOBEngine::matchImpl(
         Order &aggressive_order,
         bool is_buy
 ) {
-    while (true) {
+    // if volume is 0 then order is either invalid order or already matched
+    while (aggressive_order.volume > 0) {
         // check for passive orders queue
         auto it_passive_orders = passive_queues.find(symbol);
         // if there are no passive orders, push order to queue
@@ -137,7 +138,8 @@ void CLOBEngine::matchImpl(
 
         // get best passive order from queue
         Queue<ComparePassive> &passive_orders = it_passive_orders->second;
-        Order best_passive_order = passive_orders.top();
+        // unsafe access by reference useful if want just update it's volume
+        Order &best_passive_order = passive_orders.top();
 
         // orders matched if buy price is lower or equal than sell price
         bool is_match = (is_buy && best_passive_order.price <= aggressive_order.price) ||
@@ -153,18 +155,13 @@ void CLOBEngine::matchImpl(
         Volume volume = std::min(best_passive_order.volume, aggressive_order.volume);
         trades.emplace_back(symbol, price, volume, aggressive_order.order_id, best_passive_order.order_id);
 
-        if (best_passive_order.volume > aggressive_order.volume) {
-            best_passive_order.volume -= aggressive_order.volume;
-            auto it = passive_orders.find(best_passive_order.order_id);
-            remove(passive_queues, it_passive_orders, it);
-            push(passive_queues, symbol, best_passive_order);
-            return;
-        } else if (aggressive_order.volume > best_passive_order.volume) {
-            aggressive_order.volume -= best_passive_order.volume;
+        // update orders volume
+        best_passive_order.volume -= volume;
+        aggressive_order.volume -= volume;
+
+        // drop current best passive order if need
+        if (best_passive_order.volume == 0) {
             passive_orders.pop();
-        } else {
-            passive_orders.pop();
-            return;
         }
     }
 }
