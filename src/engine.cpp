@@ -25,13 +25,6 @@ void remove(Queues<Compare> &queues, Symbol const &symbol, OrderId order_id);
 template<typename Compare>
 void remove(Queues<Compare> &queues, Symbol const &symbol, std::vector<Order>::iterator it_order);
 
-/**
- * Pop order from queue, erase queue if it becomes empty
- */
-template<typename Compare>
-void pop(Queues<Compare> &queues, typename Queues<Compare>::iterator it_queue);
-
-
 /* order books helper */
 
 /**
@@ -143,17 +136,24 @@ void CLOBEngine::insertImpl(
         Order &aggressive_order,
         bool is_buy
 ) {
-    // if volume is 0 then order is either invalid order or already matched
+    // check for passive orders queue
+    auto it_passive_orders = passive_queues.find(symbol);
+    // if there are no passive orders, push order to queue
+    if (it_passive_orders == passive_queues.end()) {
+        push(aggressive_queues, symbol, aggressive_order);
+        return;
+    }
+
+    // if volume is 0 then order is either invalid or already matched
     while (aggressive_order.volume > 0) {
-        // check for passive orders queue
-        auto it_passive_orders = passive_queues.find(symbol);
-        // if there are no passive orders, push order to queue
-        if (it_passive_orders == passive_queues.end()) {
+
+        // if there are no passive orders left, cleanup and push order to queue
+        if (it_passive_orders->second.empty()) {
+            passive_queues.erase(it_passive_orders);
             push(aggressive_queues, symbol, aggressive_order);
             return;
         }
 
-        // don't need to check whether the queue is empty, because empty queues are erased
         // unsafe access by reference useful if want just update it's volume
         Order &best_passive_order = it_passive_orders->second.top();
 
@@ -177,7 +177,7 @@ void CLOBEngine::insertImpl(
 
         // drop current best passive order if need
         if (best_passive_order.volume == 0) {
-            pop(passive_queues, it_passive_orders);
+            it_passive_orders->second.pop();
         }
     }
 }
@@ -202,7 +202,7 @@ void CLOBEngine::amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend 
         return;
     }
 
-    // if the are any other changes amend is equal to insert
+    // if there are any other changes amend is equal to insert
     remove(queues, symbol, it_order);
     Order order = Order(amend.order_id, amend.price, amend.volume, ++cur_time);
     if (is_buy) {
@@ -260,16 +260,6 @@ void remove(Queues<Compare> &queues, Symbol const &symbol, std::vector<Order>::i
         return;
     }
     remove(queues, it_queue, it_order);
-}
-
-template<typename Compare>
-void pop(Queues<Compare> &queues, typename Queues<Compare>::iterator it_queue) {
-    // remove top order
-    it_queue->second.pop();
-    // if no orders left in this queue, remove it
-    if (it_queue->second.empty()) {
-        queues.erase(it_queue);
-    }
 }
 
 /**
