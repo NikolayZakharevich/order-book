@@ -94,11 +94,11 @@ std::vector<OrderBook> CLOBEngine::getOrderBooks() {
     std::vector<Symbol> symbols;
     symbols.reserve(buys.size() + sells.size());
 
-    for (auto const &it : buys) {
-        symbols.push_back(it.first);
+    for (auto const &it_queue_buy : buys) {
+        symbols.push_back(it_queue_buy.first);
     }
-    for (auto const &r : sells) {
-        symbols.push_back(r.first);
+    for (auto const &it_queue_sell : sells) {
+        symbols.push_back(it_queue_sell.first);
     }
 
     std::sort(symbols.begin(), symbols.end());
@@ -137,25 +137,25 @@ void CLOBEngine::insertImpl(
         bool is_buy
 ) {
     // check for passive orders queue
-    auto it_passive_orders = passive_queues.find(symbol);
+    auto it_passive_queue = passive_queues.find(symbol);
     // if there are no passive orders, push order to queue
-    if (it_passive_orders == passive_queues.end()) {
+    if (it_passive_queue == passive_queues.end()) {
         push(aggressive_queues, symbol, aggressive_order);
         return;
     }
+    Queue<ComparePassive> &passive_queue = it_passive_queue->second;
 
     // if volume is 0 then order is either invalid or already matched
     while (aggressive_order.volume > 0) {
-
         // if there are no passive orders left, cleanup and push order to queue
-        if (it_passive_orders->second.empty()) {
-            passive_queues.erase(it_passive_orders);
+        if (passive_queue.empty()) {
+            passive_queues.erase(it_passive_queue);
             push(aggressive_queues, symbol, aggressive_order);
             return;
         }
 
         // unsafe access by reference useful if want just update it's volume
-        Order &best_passive_order = it_passive_orders->second.top();
+        Order &best_passive_order = passive_queue.top();
 
         // orders matched if buy price is lower or equal than sell price
         bool is_match = (is_buy && best_passive_order.price <= aggressive_order.price) ||
@@ -177,7 +177,7 @@ void CLOBEngine::insertImpl(
 
         // drop current best passive order if need
         if (best_passive_order.volume == 0) {
-            it_passive_orders->second.pop();
+            passive_queue.pop();
         }
     }
 }
@@ -216,13 +216,13 @@ void CLOBEngine::amendImpl(Queues<Compare> &queues, Symbol const &symbol, Amend 
 
 template<typename Compare>
 void push(Queues<Compare> &queues, Symbol const &symbol, Order const &order) {
-    auto it = queues.find(symbol);
-    if (it == queues.end()) {
+    auto it_queue = queues.find(symbol);
+    if (it_queue == queues.end()) {
         auto queue = Queue<Compare>([](const Order &order) { return order.order_id; });
         queue.push(order);
         queues.insert({symbol, queue});
     } else {
-        it->second.push(order);
+        it_queue->second.push(order);
     }
 }
 
