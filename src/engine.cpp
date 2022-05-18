@@ -170,7 +170,7 @@ void CLOBEngine::insertImpl(
         }
 
         // if there is a match, save a trade
-        Price price = (is_buy ? aggressive_order : best_passive_order).price;
+        Price price = best_passive_order.price;
         Volume volume = std::min(best_passive_order.volume, aggressive_order.volume);
         trades.emplace_back(symbol, price, volume, aggressive_order.order_id, best_passive_order.order_id);
 
